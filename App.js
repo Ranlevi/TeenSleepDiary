@@ -1,10 +1,10 @@
 import { StatusBar } from 'expo-status-bar';
 import React, {useState} from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Alert, StyleSheet, Text, View } from 'react-native';
 
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import { NativeBaseProvider, Heading, Button, Input } from 'native-base';
+import { NativeBaseProvider, Heading, Button, Input, Radio, VStack, Slider } from 'native-base';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -103,22 +103,75 @@ function WelcomeScreen({navigation}){
 function RegistrationScreen(){
 
   const [registrationData, setRegistrationData] = useState({
-    email: "אי-מייל",
-    email_repeat: ""
+    mail:         "",
+    mail_repeat:  "",
+    gender:       "",
+    age:          16,
+    school_code:  "0000"
   });
-  //TODO: fix the email update state
+
   return (
-    <NativeBaseProvider>      
-      <View style={styles.form}>
-        <Heading marginTop="30px">הרשמה</Heading>        
+    <NativeBaseProvider>
+      <VStack space={3} alignItems="center">
+        <Heading marginTop="30px">הרשמה</Heading>
+
         <Input 
-          marginTop="30px" 
-          value={registrationData.email}
+          placeholder={"אי-מייל"}
+          value={registrationData.mail}
           width="90%" 
           variant="filled"
-          onChange={(value)=> setRegistrationData({...registrationData, email: value})}
+          onChangeText={(value)=> setRegistrationData({...registrationData, mail:value})}
         />
-      </View>
+        <Input 
+          placeholder={"אי-מייל (שוב)"}
+          value={registrationData.mail_repeat}
+          width="90%" 
+          variant="filled"
+          onChangeText={(value)=> setRegistrationData({...registrationData, mail_repeat:value})}
+        />
+        
+        <Heading size="md">מגדר:</Heading>        
+        <Radio.Group 
+          defaultValue="male" 
+          size="lg"
+          onChange={(value)=> setRegistrationData({...registrationData, gender:value})}
+        >
+          <Radio aria-label="male" value="male">זכר</Radio>
+          <Radio aria-label="female" value="female">נקבה</Radio>
+        </Radio.Group>
+        
+        <Heading size="md">גיל: {registrationData.age}</Heading>
+        <Slider
+          defaultValue={registrationData.age}
+          minValue={14}
+          maxValue={18}
+          accessibilityLabel="Age Slider"
+          step={1}
+          width="70%"
+          size="lg"
+          onChange={(value)=> setRegistrationData({...registrationData, age:value})}
+        >
+          <Slider.Track>
+            <Slider.FilledTrack />
+          </Slider.Track>
+          <Slider.Thumb />
+        </Slider>
+
+        <Heading size="md">קוד ביה"ס:</Heading>
+        <Input 
+          placeholder={registrationData.school_code}
+          value={registrationData.school_code}
+          width="50%" 
+          variant="filled"
+          onChangeText={(value)=> setRegistrationData({...registrationData, school_code:value})}
+        />
+
+        <Button marginTop="30px"
+          onPress={()=> console.log("pressed")}
+        >
+          סיום
+        </Button>
+      </VStack>      
     </NativeBaseProvider>
   )
 }
