@@ -1,81 +1,21 @@
 import { StatusBar } from 'expo-status-bar';
 import React, {useState} from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, ScrollView } from 'react-native';
 
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { NativeBaseProvider, Text, Heading, Button, Input, Radio, VStack, Slider } from 'native-base';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+// import AsyncStorage from '@react-native-async-storage/async-storage';
+
+import { make_id } from './utility_functions';
+import {check_registration_data} from './utility_functions';
+import {get_registration_data, save_registration_data} from './utility_functions';
+
 
 const VERSION            = 0.2;
 const Stack              = createStackNavigator();
-const VALID_SCHOOL_CODES = ["0000", "0001"];
 
-const DEBUG = true;
-
-function check_registration_data(registrationData){
-  //Checks if registation data entered by the user is valid.
-  //If not, the reason will be returned in the info field.
-  let result_obj = {
-    registration_succesful: true,
-    info:   ""
-  }
-  
-  if (registrationData.email==="" || registrationData.mail_repeat===""){
-    result_obj = {
-      result: false,
-      info:   "אנא הזנ.י כתובת אי-מייל"
-    }
-  } else if (registrationData.mail!==registrationData.mail_repeat){
-    result_obj = {
-      result: false,
-      info:   "כתובות האיי-מייל לא תואמות."
-    }
-  } else if (!VALID_SCHOOL_CODES.includes(registrationData.school_code)){
-    
-    result_obj = {
-      result: false,
-      info:   "קוד בית ספר אינו תקין."
-    }
-  } 
-  
-  return result_obj;
-}
-
-function make_id(length) {
-  var result           = '';
-  var characters       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  var charactersLength = characters.length;
-  for ( var i = 0; i < length; i++ ) {
-    result += characters.charAt(Math.floor(Math.random() * 
-      charactersLength));
- }
-  return result;
-}
-
-async function get_registration_data(){
-
-  if (DEBUG){
-    await AsyncStorage.removeItem('user_registration_data');
-  }
-
-  let jsonData =  await AsyncStorage.getItem('user_registration_data');
-  if (jsonData===null){
-    return null;
-  } else {
-    return JSON.parse(jsonData);
-  }
-}
-
-async function save_registration_data(registration_data){
-  try {
-    const jsonValue = JSON.stringify(registration_data)
-    await AsyncStorage.setItem('user_registration_data', jsonValue)
-  } catch(error) {
-    console.log('save_registration_data(): ' + error);
-  }
-}
 
 let user_registration_data = {
   user_id:      "",
@@ -110,6 +50,7 @@ export default function App() {
           <Stack.Screen
             name=     "DataVisualisationMain"
             component={DataVisualisationMainScreen}                      
+            options=    {{headerShown:false}}
           />
 
           <Stack.Screen
@@ -195,7 +136,7 @@ function RegistrationScreen({navigation}){
   }
   
   return (
-    
+    <ScrollView>
     <NativeBaseProvider>
       <VStack space={3} alignItems="center">
         <Heading marginTop="30px">הרשמה</Heading>
@@ -259,7 +200,7 @@ function RegistrationScreen({navigation}){
         <Text highlight>{reason_of_failure}</Text>
       </VStack>      
     </NativeBaseProvider>
-    
+    </ScrollView>
   )
 }
 
