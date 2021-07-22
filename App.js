@@ -1,26 +1,94 @@
 import { StatusBar } from 'expo-status-bar';
 import React, {useState} from 'react';
-import { Alert, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import { NativeBaseProvider, Heading, Button, Input, Radio, VStack, Slider } from 'native-base';
+import { NativeBaseProvider, Text, Heading, Button, Input, Radio, VStack, Slider } from 'native-base';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const Stack = createStackNavigator();
+const VERSION            = 0.2;
+const Stack              = createStackNavigator();
+const VALID_SCHOOL_CODES = ["0000", "0001"];
 
-///////////////////////////////////////
-async function getRegistrationData(){
-  //Returns a Promise which resolves to true if user is registered.
-  try {
-    return await AsyncStorage.getItem('@is_user_registered_key');
-  } catch(error){
-    console.log("getRegistrationData(): " + error);
-  }  
+const DEBUG = true;
+
+function check_registration_data(registrationData){
+  //Checks if registation data entered by the user is valid.
+  //If not, the reason will be returned in the info field.
+  let result_obj = {
+    registration_succesful: true,
+    info:   ""
+  }
+  
+  if (registrationData.email==="" || registrationData.mail_repeat===""){
+    result_obj = {
+      result: false,
+      info:   "אנא הזנ.י כתובת אי-מייל"
+    }
+  } else if (registrationData.mail!==registrationData.mail_repeat){
+    result_obj = {
+      result: false,
+      info:   "כתובות האיי-מייל לא תואמות."
+    }
+  } else if (!VALID_SCHOOL_CODES.includes(registrationData.school_code)){
+    
+    result_obj = {
+      result: false,
+      info:   "קוד בית ספר אינו תקין."
+    }
+  } 
+  
+  return result_obj;
 }
 
+function make_id(length) {
+  var result           = '';
+  var characters       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  var charactersLength = characters.length;
+  for ( var i = 0; i < length; i++ ) {
+    result += characters.charAt(Math.floor(Math.random() * 
+      charactersLength));
+ }
+  return result;
+}
 
+async function get_registration_data(){
+
+  if (DEBUG){
+    await AsyncStorage.removeItem('user_registration_data');
+  }
+
+  let jsonData =  await AsyncStorage.getItem('user_registration_data');
+  if (jsonData===null){
+    return null;
+  } else {
+    return JSON.parse(jsonData);
+  }
+}
+
+async function save_registration_data(registration_data){
+  try {
+    const jsonValue = JSON.stringify(registration_data)
+    await AsyncStorage.setItem('user_registration_data', jsonValue)
+  } catch(error) {
+    console.log('save_registration_data(): ' + error);
+  }
+}
+
+let user_registration_data = {
+  user_id:      "",
+  mail:         "",
+  mail_repeat:  "",
+  gender:       "",
+  age:          16,
+  school_code:  "1111"
+}; 
+
+
+//////////////////////////////////////////////////
+///////////////////////////////////////////////////
 export default function App() {
   return (
     <SafeAreaProvider>
@@ -71,14 +139,14 @@ function WelcomeScreen({navigation}){
 
   const [isButtonDisabled, setIsButtonDisabled] = useState(true);
 
-  getRegistrationData().then((is_user_registered) => {
-      if (is_user_registered===true){
-        navigation.navigate('DataVisualisationMain');
-      } else {
-        setIsButtonDisabled(false);        
-      }
-    }    
-  )  
+  get_registration_data().then((data)=> {
+    if (data!==null){
+      user_registration_data = data;      
+      navigation.navigate('DataVisualisationMain');
+    } else {      
+      setIsButtonDisabled(false);
+    }
+  })
 
   return (
     <NativeBaseProvider>
@@ -100,9 +168,12 @@ function WelcomeScreen({navigation}){
 
 ///////////////////////////////////////////////
 ///////////////////////////////////////////////
-function RegistrationScreen(){
+function RegistrationScreen({navigation}){
+
+  const [reason_of_failure, set_reason_of_failure] = useState("");
 
   const [registrationData, setRegistrationData] = useState({
+    user_id:      make_id(6),
     mail:         "",
     mail_repeat:  "",
     gender:       "",
@@ -110,7 +181,21 @@ function RegistrationScreen(){
     school_code:  "0000"
   });
 
+  const process_registration_data = () => {
+    
+    let result = check_registration_data(registrationData);
+    if (result.registration_succesful){
+
+      save_registration_data(registrationData);
+      user_registration_data = registrationData;
+      navigation.navigate('DataVisualisationMain');
+    } else {
+      set_reason_of_failure(result.info);
+    }
+  }
+  
   return (
+    
     <NativeBaseProvider>
       <VStack space={3} alignItems="center">
         <Heading marginTop="30px">הרשמה</Heading>
@@ -167,20 +252,24 @@ function RegistrationScreen(){
         />
 
         <Button marginTop="30px"
-          onPress={()=> console.log("pressed")}
+          onPress={()=> process_registration_data()}
         >
           סיום
         </Button>
+        <Text highlight>{reason_of_failure}</Text>
       </VStack>      
     </NativeBaseProvider>
+    
   )
 }
 
 function DataVisualisationMainScreen(){
   return (
+    <NativeBaseProvider>
     <View style={styles.container}>
       <Heading>Hello</Heading>
     </View>
+    </NativeBaseProvider>
   )
 }
 
