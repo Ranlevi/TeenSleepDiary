@@ -1,6 +1,6 @@
 import { StatusBar }                    from 'expo-status-bar';
 
-import React, {useState, useRef}        from 'react';
+import React, {useState}                from 'react';
 import { StyleSheet, View, ScrollView } from 'react-native';
 
 import { NavigationContainer }          from '@react-navigation/native';
@@ -8,7 +8,7 @@ import { createStackNavigator }         from '@react-navigation/stack';
 import { Heading, Button, Fab, AddIcon }from 'native-base';
 import { NativeBaseProvider, Text }     from 'native-base';
 import { Input, Radio, VStack, Slider } from 'native-base';
-import { Select }                       from 'native-base';
+import { Select, FlatList }             from 'native-base';
 import { SafeAreaProvider }             from 'react-native-safe-area-context';
 import {TimePicker}                     from 'react-native-simple-time-picker';
 
@@ -76,19 +76,14 @@ export default function App() {
           <Stack.Screen
             name=     "DataVisualisationMain"
             component={DataVisualisationMainScreen}                      
-            options=    {{headerShown:false}}
+            options=    {{headerShown:false}}                          
           />
 
           <Stack.Screen
             name=     "SleepQuestioneer"
             component={SleepQuestioneerScreen}
             options=  {{headerShown:false}}          
-          />
-
-          <Stack.Screen
-            name=     "UserDetails"
-            component={UserDetailsScreen}            
-          />
+          />          
 
         </Stack.Navigator>
       </NavigationContainer>
@@ -251,18 +246,35 @@ function RegistrationScreen({navigation}){
 ///////////////////////////////////////////////
 ///////////////////////////////////////////////
 function DataVisualisationMainScreen({navigation}){
+
+  const data = [
+    {id: "123", title: "AA"},
+    {id: "124", title: "BB"},
+    {id: "125", title: "CC"},
+  ]
+
   return (
+    
     <NativeBaseProvider>
-    <View style={styles.container}>
-      <Heading>Hello</Heading>
-      <Fab
-        size="lg"
-        icon={<AddIcon color="white"/>}
-        onPress={()=> 
-          navigation.navigate('SleepQuestioneer')}
-      />
-    </View>
+      <View style={styles.dataViz}>
+      <VStack mx={1} space={3} alignItems="center" safeArea> 
+        <FlatList 
+          data={data}
+          renderItem={({item})=>(
+            <Text>{item.title}</Text>
+          )}
+        />
+        <Fab
+          size="lg"
+          icon={<AddIcon color="white"/>}
+          onPress={()=> 
+            navigation.navigate('SleepQuestioneer')}
+        />
+      </VStack>
+      </View>
     </NativeBaseProvider>
+    
+    
   )
 }
 
@@ -514,14 +526,6 @@ function SleepQuestioneerScreen({navigation}){
   )
 }
 
-function UserDetailsScreen(){
-  return (
-    <View style={styles.container}>
-      <Text>Hello</Text>
-    </View>
-  )
-}
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -537,5 +541,9 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "flex-start",    
     alignItems: "center"
+  },
+  dataViz: {   
+    flex: 1, 
+    justifyContent: "flex-start",    
   }
 });
