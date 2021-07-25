@@ -12,11 +12,14 @@ import { Select, FlatList }             from 'native-base';
 import { SafeAreaProvider }             from 'react-native-safe-area-context';
 import {TimePicker}                     from 'react-native-simple-time-picker';
 
-import { make_id, check_registration_data }            from './utility_functions';
-import {get_registration_data, save_registration_data} from './utility_functions';
+import { make_id, check_registration_data, get_form_data }  from './utility_functions';
+import {get_registration_data, save_registration_data}      from './utility_functions';
+import { save_sleep_data, get_sleep_data }                    from './utility_functions';
 
 import firebase                         from "firebase/app";
 import "firebase/database";
+
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const VERSION = 0.2;
 const Stack   = createStackNavigator();
@@ -30,9 +33,6 @@ const firebaseConfig = {
   messagingSenderId:  "661172161209",
   appId:              "1:661172161209:android:fc222055baada11f46a968"
 };
-
-// Initialize Firebase
-// firebase.initializeApp(firebaseConfig);
 
 if (!firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
@@ -52,6 +52,9 @@ let user_registration_data = {
   school_code:  "1111"
 }; 
 
+let form_data = {};
+let form_data_key = -1;
+let form_data_arr = [];
 
 //////////////////////////////////////////////////
 ///////////////////////////////////////////////////
@@ -114,6 +117,28 @@ function WelcomeScreen({navigation}){
     }
   })
 
+  get_sleep_data().then((data)=>{
+    if (data!==null){
+      form_data = data;
+      form_data_keys = Object.keys(form_data);
+
+      for (let i=0;i<form_data_keys.length;i++){
+        form_data_arr.push(form_data[i]);
+      }
+
+      console.log(form_data_arr);
+    }
+  })
+
+  // AsyncStorage.getItem('form_data').then((jsonData)=>{
+  //   if (jsonData===null){
+  //     console.log('form data is null');
+  //   } else {
+  //     form_data = JSON.parse(jsonData); 
+  //     console.log(form_data);
+  //   }
+  // })
+  
   return (
     <NativeBaseProvider>
       <View style={styles.container}>
@@ -247,6 +272,12 @@ function RegistrationScreen({navigation}){
 ///////////////////////////////////////////////
 function DataVisualisationMainScreen({navigation}){
 
+  /*
+  need to insert data in order.
+  need to save data in storage as object.
+  save with increment key in object.
+  sort and insert.
+  */
   const data = [
     {id: "123", title: "AA"},
     {id: "124", title: "BB"},
@@ -257,24 +288,25 @@ function DataVisualisationMainScreen({navigation}){
     
     <NativeBaseProvider>
       <View style={styles.dataViz}>
-      <VStack mx={1} space={3} alignItems="center" safeArea> 
-        <FlatList 
-          data={data}
-          renderItem={({item})=>(
-            <Text>{item.title}</Text>
-          )}
-        />
-        <Fab
-          size="lg"
-          icon={<AddIcon color="white"/>}
-          onPress={()=> 
-            navigation.navigate('SleepQuestioneer')}
-        />
-      </VStack>
+        <VStack mx={1} space={3} alignItems="center" safeArea> 
+        
+          <FlatList 
+            data={data}
+            renderItem={({item})=>(
+              <Text>{item.title}</Text>
+            )}
+          />
+
+          <Fab
+            size="lg"
+            icon={<AddIcon color="white"/>}
+            onPress={()=> 
+              navigation.navigate('SleepQuestioneer')}
+          />
+        </VStack>
       </View>
     </NativeBaseProvider>
-    
-    
+        
   )
 }
 
@@ -302,12 +334,10 @@ function SleepQuestioneerScreen({navigation}){
   const [actualSleepTime, setActualSleepTime]           = useState(0);
   
   const save_form_data = () => {
-
-    let new_item_ref = FB_rootRef.push();
     
-    new_item_ref.set({
-      userID:                 user_registration_data.user_id,
-      formSubmitTime:         new Date().toString(),
+    let data = {
+      formSubmitTime:         Date().toString(),
+      userID:                 user_registration_data.user_id,      
       bedEntryTime:           `${bedEntryTime_H}:${bedEntryTime_M}`,      
       sleepDecisionTime:      `${sleepDecisionTime_H}:${sleepDecisionTime_M}`, 
       bedActivity:            bedActivity,
@@ -320,7 +350,15 @@ function SleepQuestioneerScreen({navigation}){
       wakeUpMethodOther:      wakeUpMethodOther,
       riseFromBedTime_H:      `${riseFromBedTime_H}:${riseFromBedTime_M}`,
       actualSleepTime:        actualSleepTime
-    });
+    }
+
+    form_data_key += 1;
+    
+    form_data[form_data_key] = data;
+    save_sleep_data(form_data);
+        
+    let new_item_ref = FB_rootRef.push();    
+    new_item_ref.set(data);
   }
  
   return (
