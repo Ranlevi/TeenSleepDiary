@@ -1,6 +1,6 @@
 import { StatusBar }                    from 'expo-status-bar';
 
-import React, {useState}                from 'react';
+import React, {useState, useContext}   from 'react';
 import { StyleSheet, View, ScrollView } from 'react-native';
 
 import { NavigationContainer }          from '@react-navigation/native';
@@ -20,6 +20,7 @@ import firebase                         from "firebase/app";
 import "firebase/database";
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { createContext } from 'react/cjs/react.production.min';
 
 const VERSION = 0.2;
 const Stack   = createStackNavigator();
@@ -52,9 +53,15 @@ let user_registration_data = {
   school_code:  "1111"
 }; 
 
-let form_data = {};
-let form_data_key = -1;
-let form_data_arr = [];
+let form_data        = [];
+
+let RefreshFlatlistContext = createContext(false);
+
+get_sleep_data().then((data)=>{
+  if (data!==null){
+    form_data = data;
+  }
+})
 
 //////////////////////////////////////////////////
 ///////////////////////////////////////////////////
@@ -108,7 +115,7 @@ function WelcomeScreen({navigation}){
     //Try to get stored registration data, which should be available
     //if the user is already registered on the current device.
     //If found -> Go to Datavisualision Screen. Else - enable the 
-    //Registration button.
+    //Registration button.  
     if (data!==null){
       user_registration_data = data;      
       navigation.navigate('DataVisualisationMain');
@@ -116,28 +123,6 @@ function WelcomeScreen({navigation}){
       setIsButtonDisabled(false);
     }
   })
-
-  get_sleep_data().then((data)=>{
-    if (data!==null){
-      form_data = data;
-      form_data_keys = Object.keys(form_data);
-
-      for (let i=0;i<form_data_keys.length;i++){
-        form_data_arr.push(form_data[i]);
-      }
-
-      console.log(form_data_arr);
-    }
-  })
-
-  // AsyncStorage.getItem('form_data').then((jsonData)=>{
-  //   if (jsonData===null){
-  //     console.log('form data is null');
-  //   } else {
-  //     form_data = JSON.parse(jsonData); 
-  //     console.log(form_data);
-  //   }
-  // })
   
   return (
     <NativeBaseProvider>
@@ -272,17 +257,7 @@ function RegistrationScreen({navigation}){
 ///////////////////////////////////////////////
 function DataVisualisationMainScreen({navigation}){
 
-  /*
-  need to insert data in order.
-  need to save data in storage as object.
-  save with increment key in object.
-  sort and insert.
-  */
-  const data = [
-    {id: "123", title: "AA"},
-    {id: "124", title: "BB"},
-    {id: "125", title: "CC"},
-  ]
+  const refresh_flatlist = useContext(RefreshFlatlistContext);
 
   return (
     
@@ -291,9 +266,10 @@ function DataVisualisationMainScreen({navigation}){
         <VStack mx={1} space={3} alignItems="center" safeArea> 
         
           <FlatList 
-            data={data}
+            extraData={refresh_flatlist}
+            data={form_data}
             renderItem={({item})=>(
-              <Text>{item.title}</Text>
+              <Text>{item.key}</Text>
             )}
           />
 
@@ -333,10 +309,12 @@ function SleepQuestioneerScreen({navigation}){
   const [riseFromBedTime_M, setRiseFromBedTime_M]       = useState(0);
   const [actualSleepTime, setActualSleepTime]           = useState(0);
   
+  const [refreshFlatlist, setRefreshFlatlist] = useState(false);
+
   const save_form_data = () => {
     
     let data = {
-      formSubmitTime:         Date().toString(),
+      key:                    new Date().toLocaleString('he-IL'),
       userID:                 user_registration_data.user_id,      
       bedEntryTime:           `${bedEntryTime_H}:${bedEntryTime_M}`,      
       sleepDecisionTime:      `${sleepDecisionTime_H}:${sleepDecisionTime_M}`, 
@@ -352,11 +330,8 @@ function SleepQuestioneerScreen({navigation}){
       actualSleepTime:        actualSleepTime
     }
 
-    form_data_key += 1;
-    
-    form_data[form_data_key] = data;
+    form_data.push(data);
     save_sleep_data(form_data);
-        
     let new_item_ref = FB_rootRef.push();    
     new_item_ref.set(data);
   }
@@ -550,14 +525,17 @@ function SleepQuestioneerScreen({navigation}){
               <Slider.Thumb />
             </Slider>
 
+            <RefreshFlatlistContext.Provider value={refreshFlatlist}>
             <Button 
               onPress={()=> {
-                save_form_data();
+                save_form_data();                
+                setRefreshFlatlist(!refreshFlatlist);
                 navigation.navigate('DataVisualisationMain');
               }}
-            >
+            >            
               סיום
             </Button>
+            </RefreshFlatlistContext.Provider>
         </VStack>
       </NativeBaseProvider>
     </ScrollView>    
