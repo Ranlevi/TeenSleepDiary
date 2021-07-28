@@ -1,6 +1,6 @@
 import { StatusBar }                    from 'expo-status-bar';
 
-import React, {useState, useContext}   from 'react';
+import React, {useState}                from 'react';
 import { StyleSheet, View, ScrollView } from 'react-native';
 
 import { NavigationContainer }          from '@react-navigation/native';
@@ -8,19 +8,16 @@ import { createStackNavigator }         from '@react-navigation/stack';
 import { Heading, Button, Fab, AddIcon }from 'native-base';
 import { NativeBaseProvider, Text }     from 'native-base';
 import { Input, Radio, VStack, Slider } from 'native-base';
-import { Select, FlatList }             from 'native-base';
+import { Select, FlatList, Modal }      from 'native-base';
 import { SafeAreaProvider }             from 'react-native-safe-area-context';
 import {TimePicker}                     from 'react-native-simple-time-picker';
 
-import { make_id, check_registration_data, get_form_data }  from './utility_functions';
-import {get_registration_data, save_registration_data}      from './utility_functions';
-import { save_sleep_data, get_sleep_data }                    from './utility_functions';
+import { make_id, check_registration_data }             from './utility_functions';
+import {get_registration_data, save_registration_data}  from './utility_functions';
+import { save_sleep_data, get_sleep_data }              from './utility_functions';
 
 import firebase                         from "firebase/app";
 import "firebase/database";
-
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createContext } from 'react/cjs/react.production.min';
 
 const VERSION = 0.2;
 const Stack   = createStackNavigator();
@@ -55,8 +52,6 @@ let user_registration_data = {
 
 let form_data        = [];
 
-let RefreshFlatlistContext = createContext(false);
-
 get_sleep_data().then((data)=>{
   if (data!==null){
     form_data = data;
@@ -88,12 +83,6 @@ export default function App() {
             component={DataVisualisationMainScreen}                      
             options=    {{headerShown:false}}                          
           />
-
-          <Stack.Screen
-            name=     "SleepQuestioneer"
-            component={SleepQuestioneerScreen}
-            options=  {{headerShown:false}}          
-          />          
 
         </Stack.Navigator>
       </NavigationContainer>
@@ -257,38 +246,8 @@ function RegistrationScreen({navigation}){
 ///////////////////////////////////////////////
 function DataVisualisationMainScreen({navigation}){
 
-  const refresh_flatlist = useContext(RefreshFlatlistContext);
-
-  return (
-    
-    <NativeBaseProvider>
-      <View style={styles.dataViz}>
-        <VStack mx={1} space={3} alignItems="center" safeArea> 
-        
-          <FlatList 
-            extraData={refresh_flatlist}
-            data={form_data}
-            renderItem={({item})=>(
-              <Text>{item.key}</Text>
-            )}
-          />
-
-          <Fab
-            size="lg"
-            icon={<AddIcon color="white"/>}
-            onPress={()=> 
-              navigation.navigate('SleepQuestioneer')}
-          />
-        </VStack>
-      </View>
-    </NativeBaseProvider>
-        
-  )
-}
-
-///////////////////////////////////////////////
-///////////////////////////////////////////////
-function SleepQuestioneerScreen({navigation}){
+  const [showFormModal, setShowFormModal]               = useState(false);
+  const [showInfoModal, setShowInfoModal]               = useState(false);
 
   const [bedEntryTime_H, setBedEntryTime_H]             = useState(0);
   const [bedEntryTime_M, setBedEntryTime_M]             = useState(0);
@@ -308,9 +267,24 @@ function SleepQuestioneerScreen({navigation}){
   const [riseFromBedTime_H, setRiseFromBedTime_H]       = useState(0);
   const [riseFromBedTime_M, setRiseFromBedTime_M]       = useState(0);
   const [actualSleepTime, setActualSleepTime]           = useState(0);
-  
-  const [refreshFlatlist, setRefreshFlatlist] = useState(false);
 
+  const [refreshFlatlist, setRefreshFlatlist]           = useState(false);
+  const [infoForModal, setInfoForModal]                 = useState({
+      key:                    "",
+      bedEntryTime:           "",
+      sleepDecisionTime:      "",
+      bedActivity:            "",
+      bedActivityOther:       "",
+      timeUntilSleep:         "",
+      numOfAwakenings:        "",
+      totalTimeOfAwakenings:  "",
+      wakeUpTime:             "",
+      wakeUpMethod:           "",
+      wakeUpMethodOther:      "",
+      riseFromBedTime_H:      "",
+      actualSleepTime:        ""
+  })
+  
   const save_form_data = () => {
     
     let data = {
@@ -334,211 +308,278 @@ function SleepQuestioneerScreen({navigation}){
     save_sleep_data(form_data);
     let new_item_ref = FB_rootRef.push();    
     new_item_ref.set(data);
+
+    setRefreshFlatlist(refreshFlatlist => !refreshFlatlist);
   }
- 
+
   return (
-    <ScrollView>
-      <StatusBar style="auto" />
-      <NativeBaseProvider>
-        <VStack mx={20} space={3} alignItems="center" safeArea>          
-            <Heading>שאלון שינה</Heading>
+    
+    <NativeBaseProvider>
+      <View style={styles.dataViz}>
+        <VStack mx={1} space={3} alignItems="center" safeArea> 
+          <Heading marginTop="30px">נתונים שהוזנו בעבר:</Heading>
 
-            <Heading size="md">שעת כניסה למיטה:</Heading>
-            <TimePicker              
-              minutesInterval={15}
-              value={{minutes:bedEntryTime_M, hours:bedEntryTime_H}}
-              onChange={(value)=> {
-                setBedEntryTime_H(value.hours);
-                setBedEntryTime_M(value.minutes);
-              }}
-            />
+          <FlatList 
+            extraData={refreshFlatlist}
+            data={form_data}
+            renderItem={({item})=>(
+              <Button 
+                mt={3}
+                variant="outline"
+                onPress={()=>{
+                  setInfoForModal({...infoForModal, bedEntryTime: "TEST"});
+                  setShowInfoModal(true);
+                }}
+              >
+                {item.key}
+              </Button>              
+            )}
+          />
 
-            <Heading size="md">השעה בה החלטת לעצום עיניים ולהרדם:</Heading>
-            <TimePicker              
-              minutesInterval={15}
-              value={{minutes:sleepDecisionTime_M, hours:sleepDecisionTime_H}}
-              onChange={(value)=> {
-                setSleepDecisionTime_H(value.hours);
-                setSleepDecisionTime_M(value.minutes);
-              }}
-            />
-
-            <Heading size="md">מה עשית במיטה לפני שהחלטת להרדם?</Heading>
-            <Select 
-              minWidth={200} 
-              selectedValue={bedActivity}
-              onValueChange={(value)=>{
-                if (value==="אחר"){
-                  setBedActivityInputDsbd(false);
-                  setBedActivity(value);                  
-                } else {
-                  setBedActivityInputDsbd(true);
-                  setBedActivity(value);
-                  setBedActivityOther("");
-                }
-              }}
-            >
-              <Select.Item label="טלפון"      value="טלפון" />
-              <Select.Item label="מחשב"       value="מחשב" />
-              <Select.Item label="טאבלט"      value="טאבלט" />
-              <Select.Item label="ספר"        value="ספר" />
-              <Select.Item label="מוזיקה"     value="מוזיקה" />
-              <Select.Item label="טלוויזיה"   value="טלוויזיה" />
-              <Select.Item label="אחר (פרט.י לעיל)" value="אחר" />
-            </Select>
-            <Input               
-              w="80%"
-              isDisabled={bedActivityInputDsbd}
-              placeholder="פירוט"
-              value={bedActivityOther}
-              variant="filled"
-              onChangeText={(value)=> 
-                setBedActivityOther(value)
-              }
-            />
-
-            <Heading size="md">הזמן מהרגע שהחלטת להירדם ועד שנרדמת:</Heading>
-            <Text>{timeUntilSleep} דקות</Text>
-            <Slider
-              defaultValue={timeUntilSleep}
-              minValue={0}
-              maxValue={180}
-              accessibilityLabel="Time Until Sleep"
-              step={15}
-              width="80%"
-              size="md"
-              onChange={(value)=> 
-                setTimeUntilSleep(value)}
-            >
-              <Slider.Track>
-                <Slider.FilledTrack />
-              </Slider.Track>
-              <Slider.Thumb />
-            </Slider>
-
-            <Heading size="md">מספר היקיצות שלך בלילה:</Heading>
-            <Text>{numOfAwakenings} יקיצות</Text>
-            <Slider
-              defaultValue={numOfAwakenings}
-              minValue={0}
-              maxValue={9}
-              accessibilityLabel="Number of Awakeinings"
-              step={1}
-              width="80%"
-              size="md"
-              onChange={(value)=> 
-                setNumOfAwakenings(value)}
-            >
-              <Slider.Track>
-                <Slider.FilledTrack />
-              </Slider.Track>
-              <Slider.Thumb />
-            </Slider>
-
-            <Heading size="md">סך כל זמן היקיצות בלילה עד היציאה מהמיטה בבוקר:</Heading>
-            <Text>{totalTimeOfAwakenings} דקות</Text>
-            <Slider
-              defaultValue={totalTimeOfAwakenings}
-              minValue={0}
-              maxValue={180}
-              accessibilityLabel="Total Time Awake"
-              step={15}
-              width="80%"
-              size="md"
-              onChange={(value)=> 
-                setTotalTimeOfAwakenings(value)}
-            >
-              <Slider.Track>
-                <Slider.FilledTrack />
-              </Slider.Track>
-              <Slider.Thumb />
-            </Slider>
-        
-            <Heading size="md">שעת היקיצה הסופית שלך בבוקר:</Heading>
-            <TimePicker              
-              minutesInterval={15}
-              value={{minutes:wakeUpTime_M, hours:wakeUpTime_H}}
-              onChange={(value)=> {
-                setWakeUpTime_H(value.hours);
-                setWakeUpTime_M(value.minutes);
-              }}
-            />
-
-            <Heading size="md">כיצד התעוררת?</Heading>
-            <Select 
-              minWidth={200} 
-              selectedValue={wakeUpMethod}
-              onValueChange={(value)=>{
-                if (value==="אחר"){
-                  setWakeUpMethodInputDslbd(false);
-                  setWakeUpMethod(value);                  
-                } else {
-                  setWakeUpMethodInputDslbd(true);
-                  setWakeUpMethod(value);
-                  setWakeUpMethodOther("");
-                }
-              }}
-            >
-              <Select.Item label="שעון מעורר"      value="שערון מעורר" />
-              <Select.Item label="העירו אותי"       value="העירו אותי" />
-              <Select.Item label="התעוררתי לבד"      value="התעוררתי לבד" />
-              <Select.Item label="התעוררתי מרעש\אור"        value="התעוררתי מראש\אור" />
-              <Select.Item label="אחר (פרט.י לעיל)" value="אחר" />
-            </Select>
-            <Input               
-              w="80%"
-              isDisabled={wakeUpMethodInputDslbd}
-              placeholder="פירוט"
-              value={wakeUpMethodOther}
-              variant="filled"
-              onChangeText={(value)=> 
-                setWakeUpMethodOther(value)
-              }
-            />
-
-            <Heading size="md">השעה בה יצאת מהמיטה:</Heading>
-            <TimePicker              
-              minutesInterval={15}
-              value={{minutes:riseFromBedTime_M, hours:riseFromBedTime_H}}
-              onChange={(value)=> {
-                setRiseFromBedTime_H(value.hours);
-                setRiseFromBedTime_M(value.minutes);
-              }}
-            />
-
-            <Heading size="md">כמה זמן להערכתך ממש ישנת:</Heading>
-            <Text>{actualSleepTime} שעות</Text>
-            <Slider
-              defaultValue={actualSleepTime}
-              minValue={0}
-              maxValue={12}
-              accessibilityLabel="Actual Sleep Time"
-              step={0.25}
-              width="80%"
-              size="md"
-              onChange={(value)=> 
-                setActualSleepTime(value)}
-            >
-              <Slider.Track>
-                <Slider.FilledTrack />
-              </Slider.Track>
-              <Slider.Thumb />
-            </Slider>
-
-            <RefreshFlatlistContext.Provider value={refreshFlatlist}>
-            <Button 
-              onPress={()=> {
-                save_form_data();                
-                setRefreshFlatlist(!refreshFlatlist);
-                navigation.navigate('DataVisualisationMain');
-              }}
-            >            
-              סיום
-            </Button>
-            </RefreshFlatlistContext.Provider>
+          <Fab
+            size="lg"
+            icon={<AddIcon color="white"/>}
+            onPress={()=>               
+              setShowFormModal(true)
+            }
+          />
         </VStack>
-      </NativeBaseProvider>
-    </ScrollView>    
+            
+        {/* Sleep Questioneer Form     */}
+        <Modal
+          isOpen={showFormModal}
+          onClose={()=> setShowFormModal(false)}
+        >
+          <Modal.Content>
+            <Modal.CloseButton />
+            <Modal.Header>מלא את הנתונים הבאים:</Modal.Header>
+            <Modal.Body>
+              <ScrollView>
+                <NativeBaseProvider>
+                  <VStack mx={20} space={3} alignItems="center" safeArea>          
+                    
+                      <Heading size="md">שעת כניסה למיטה:</Heading>
+                      <TimePicker              
+                        minutesInterval={15}
+                        value={{minutes:bedEntryTime_M, hours:bedEntryTime_H}}
+                        onChange={(value)=> {
+                          setBedEntryTime_H(value.hours);
+                          setBedEntryTime_M(value.minutes);
+                        }}
+                      />
+
+                      <Heading size="md">השעה בה החלטת לעצום עיניים ולהרדם:</Heading>
+                      <TimePicker              
+                        minutesInterval={15}
+                        value={{minutes:sleepDecisionTime_M, hours:sleepDecisionTime_H}}
+                        onChange={(value)=> {
+                          setSleepDecisionTime_H(value.hours);
+                          setSleepDecisionTime_M(value.minutes);
+                        }}
+                      />
+
+                      <Heading size="md">מה עשית במיטה לפני שהחלטת להרדם?</Heading>
+                      <Select 
+                        minWidth={200} 
+                        selectedValue={bedActivity}
+                        onValueChange={(value)=>{
+                          if (value==="אחר"){
+                            setBedActivityInputDsbd(false);
+                            setBedActivity(value);                  
+                          } else {
+                            setBedActivityInputDsbd(true);
+                            setBedActivity(value);
+                            setBedActivityOther("");
+                          }
+                        }}
+                      >
+                        <Select.Item label="טלפון"      value="טלפון" />
+                        <Select.Item label="מחשב"       value="מחשב" />
+                        <Select.Item label="טאבלט"      value="טאבלט" />
+                        <Select.Item label="ספר"        value="ספר" />
+                        <Select.Item label="מוזיקה"     value="מוזיקה" />
+                        <Select.Item label="טלוויזיה"   value="טלוויזיה" />
+                        <Select.Item label="אחר (פרט.י לעיל)" value="אחר" />
+                      </Select>
+                      <Input               
+                        w="80%"
+                        isDisabled={bedActivityInputDsbd}
+                        placeholder="פירוט"
+                        value={bedActivityOther}
+                        variant="filled"
+                        onChangeText={(value)=> 
+                          setBedActivityOther(value)
+                        }
+                      />
+
+                      <Heading size="md">הזמן מהרגע שהחלטת להירדם ועד שנרדמת:</Heading>
+                      <Text>{timeUntilSleep} דקות</Text>
+                      <Slider
+                        defaultValue={timeUntilSleep}
+                        minValue={0}
+                        maxValue={180}
+                        accessibilityLabel="Time Until Sleep"
+                        step={15}
+                        width="80%"
+                        size="md"
+                        onChange={(value)=> 
+                          setTimeUntilSleep(value)}
+                      >
+                        <Slider.Track>
+                          <Slider.FilledTrack />
+                        </Slider.Track>
+                        <Slider.Thumb />
+                      </Slider>
+
+                      <Heading size="md">מספר היקיצות שלך בלילה:</Heading>
+                      <Text>{numOfAwakenings} יקיצות</Text>
+                      <Slider
+                        defaultValue={numOfAwakenings}
+                        minValue={0}
+                        maxValue={9}
+                        accessibilityLabel="Number of Awakeinings"
+                        step={1}
+                        width="80%"
+                        size="md"
+                        onChange={(value)=> 
+                          setNumOfAwakenings(value)}
+                      >
+                        <Slider.Track>
+                          <Slider.FilledTrack />
+                        </Slider.Track>
+                        <Slider.Thumb />
+                      </Slider>
+
+                      <Heading size="md">סך כל זמן היקיצות בלילה עד היציאה מהמיטה בבוקר:</Heading>
+                      <Text>{totalTimeOfAwakenings} דקות</Text>
+                      <Slider
+                        defaultValue={totalTimeOfAwakenings}
+                        minValue={0}
+                        maxValue={180}
+                        accessibilityLabel="Total Time Awake"
+                        step={15}
+                        width="80%"
+                        size="md"
+                        onChange={(value)=> 
+                          setTotalTimeOfAwakenings(value)}
+                      >
+                        <Slider.Track>
+                          <Slider.FilledTrack />
+                        </Slider.Track>
+                        <Slider.Thumb />
+                      </Slider>
+                  
+                      <Heading size="md">שעת היקיצה הסופית שלך בבוקר:</Heading>
+                      <TimePicker              
+                        minutesInterval={15}
+                        value={{minutes:wakeUpTime_M, hours:wakeUpTime_H}}
+                        onChange={(value)=> {
+                          setWakeUpTime_H(value.hours);
+                          setWakeUpTime_M(value.minutes);
+                        }}
+                      />
+
+                      <Heading size="md">כיצד התעוררת?</Heading>
+                      <Select 
+                        minWidth={200} 
+                        selectedValue={wakeUpMethod}
+                        onValueChange={(value)=>{
+                          if (value==="אחר"){
+                            setWakeUpMethodInputDslbd(false);
+                            setWakeUpMethod(value);                  
+                          } else {
+                            setWakeUpMethodInputDslbd(true);
+                            setWakeUpMethod(value);
+                            setWakeUpMethodOther("");
+                          }
+                        }}
+                      >
+                        <Select.Item label="שעון מעורר"      value="שערון מעורר" />
+                        <Select.Item label="העירו אותי"       value="העירו אותי" />
+                        <Select.Item label="התעוררתי לבד"      value="התעוררתי לבד" />
+                        <Select.Item label="התעוררתי מרעש\אור"        value="התעוררתי מראש\אור" />
+                        <Select.Item label="אחר (פרט.י לעיל)" value="אחר" />
+                      </Select>
+                      <Input               
+                        w="80%"
+                        isDisabled={wakeUpMethodInputDslbd}
+                        placeholder="פירוט"
+                        value={wakeUpMethodOther}
+                        variant="filled"
+                        onChangeText={(value)=> 
+                          setWakeUpMethodOther(value)
+                        }
+                      />
+
+                      <Heading size="md">השעה בה יצאת מהמיטה:</Heading>
+                      <TimePicker              
+                        minutesInterval={15}
+                        value={{minutes:riseFromBedTime_M, hours:riseFromBedTime_H}}
+                        onChange={(value)=> {
+                          setRiseFromBedTime_H(value.hours);
+                          setRiseFromBedTime_M(value.minutes);
+                        }}
+                      />
+
+                      <Heading size="md">כמה זמן להערכתך ממש ישנת:</Heading>
+                      <Text>{actualSleepTime} שעות</Text>
+                      <Slider
+                        defaultValue={actualSleepTime}
+                        minValue={0}
+                        maxValue={12}
+                        accessibilityLabel="Actual Sleep Time"
+                        step={0.25}
+                        width="80%"
+                        size="md"
+                        onChange={(value)=> 
+                          setActualSleepTime(value)}
+                      >
+                        <Slider.Track>
+                          <Slider.FilledTrack />
+                        </Slider.Track>
+                        <Slider.Thumb />
+                      </Slider>            
+                  </VStack>
+                </NativeBaseProvider>
+              </ScrollView>    
+            </Modal.Body>
+            <Modal.Footer>
+              <Button
+                onPress={()=> {
+                  setShowFromModal(false);
+                  save_form_data();
+                }}
+              >
+                סיום
+              </Button>
+            </Modal.Footer>
+          </Modal.Content>
+
+        </Modal>
+
+        {/* Show Info Modal */}
+        <Modal
+          isOpen={showInfoModal}
+          onClose={()=> setShowInfoModal(false)}
+        >
+          <Modal.Content>
+            <Modal.CloseButton 
+              onClose={()=> setShowInfoModal(false)}
+            />
+              <Modal.Body>
+                <ScrollView>
+                  <NativeBaseProvider>
+                    <VStack space={3} alignItems="center" safeArea>          
+                      <Text>שעת כניסה למיטה: {infoForModal.bedEntryTime}</Text>
+                    </VStack>
+                  </NativeBaseProvider>
+                </ScrollView>    
+              </Modal.Body>              
+            </Modal.Content>
+        </Modal>
+
+      </View>
+    </NativeBaseProvider>        
   )
 }
 
