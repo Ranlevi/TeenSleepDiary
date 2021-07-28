@@ -19,6 +19,11 @@ import { save_sleep_data, get_sleep_data }              from './utility_function
 import firebase                         from "firebase/app";
 import "firebase/database";
 
+//TODO: 
+//email needed?
+//replace slider?
+//documentation
+
 const VERSION = 0.2;
 const Stack   = createStackNavigator();
 
@@ -300,7 +305,7 @@ function DataVisualisationMainScreen({navigation}){
       wakeUpTime:             `${wakeUpTime_H}:${wakeUpTime_M}`,
       wakeUpMethod:           wakeUpMethod,
       wakeUpMethodOther:      wakeUpMethodOther,
-      riseFromBedTime_H:      `${riseFromBedTime_H}:${riseFromBedTime_M}`,
+      riseFromBedTime:        `${riseFromBedTime_H}:${riseFromBedTime_M}`,
       actualSleepTime:        actualSleepTime
     }
 
@@ -327,7 +332,21 @@ function DataVisualisationMainScreen({navigation}){
                 mt={3}
                 variant="outline"
                 onPress={()=>{
-                  setInfoForModal({...infoForModal, bedEntryTime: "TEST"});
+                  setInfoForModal({
+                    ...infoForModal, 
+                    bedEntryTime: item.bedEntryTime,
+                    sleepDecisionTime: item.sleepDecisionTime,
+                    bedActivity:       item.bedActivity,
+                    bedActivityOther:  item.bedActivityOther,
+                    timeUntilSleep:    item.timeUntilSleep,
+                    numOfAwakenings:   item.numOfAwakenings,
+                    totalTimeOfAwakenings:  item.totalTimeOfAwakenings,
+                    wakeUpTime:         item.wakeUpTime,
+                    wakeUpMethod:       item.wakeUpMethod,
+                    wakeUpMethodOther:  item.wakeUpMethodOther,
+                    riseFromBedTime:    item.riseFromBedTime,
+                    actualSleepTime:    item.actualSleepTime
+                  });
                   setShowInfoModal(true);
                 }}
               >
@@ -351,14 +370,15 @@ function DataVisualisationMainScreen({navigation}){
           onClose={()=> setShowFormModal(false)}
         >
           <Modal.Content>
-            <Modal.CloseButton />
-            <Modal.Header>מלא את הנתונים הבאים:</Modal.Header>
+            <Modal.CloseButton onPress={()=> setShowFormModal(false)} />
+            
             <Modal.Body>
               <ScrollView>
                 <NativeBaseProvider>
-                  <VStack mx={20} space={3} alignItems="center" safeArea>          
-                    
-                      <Heading size="md">שעת כניסה למיטה:</Heading>
+                  <VStack space={3} alignItems="center" safeArea>          
+                      <Heading size="md">מלא את הנתונים הבאים:</Heading>        
+
+                      <Heading size="sm">שעת כניסה למיטה:</Heading>
                       <TimePicker              
                         minutesInterval={15}
                         value={{minutes:bedEntryTime_M, hours:bedEntryTime_H}}
@@ -368,7 +388,7 @@ function DataVisualisationMainScreen({navigation}){
                         }}
                       />
 
-                      <Heading size="md">השעה בה החלטת לעצום עיניים ולהרדם:</Heading>
+                      <Heading size="sm">השעה בה החלטת לעצום עיניים ולהרדם:</Heading>
                       <TimePicker              
                         minutesInterval={15}
                         value={{minutes:sleepDecisionTime_M, hours:sleepDecisionTime_H}}
@@ -378,7 +398,7 @@ function DataVisualisationMainScreen({navigation}){
                         }}
                       />
 
-                      <Heading size="md">מה עשית במיטה לפני שהחלטת להרדם?</Heading>
+                      <Heading size="sm">מה עשית במיטה לפני שהחלטת להרדם?</Heading>
                       <Select 
                         minWidth={200} 
                         selectedValue={bedActivity}
@@ -412,7 +432,7 @@ function DataVisualisationMainScreen({navigation}){
                         }
                       />
 
-                      <Heading size="md">הזמן מהרגע שהחלטת להירדם ועד שנרדמת:</Heading>
+                      <Heading size="sm">הזמן מהרגע שהחלטת להירדם ועד שנרדמת:</Heading>
                       <Text>{timeUntilSleep} דקות</Text>
                       <Slider
                         defaultValue={timeUntilSleep}
@@ -421,7 +441,7 @@ function DataVisualisationMainScreen({navigation}){
                         accessibilityLabel="Time Until Sleep"
                         step={15}
                         width="80%"
-                        size="md"
+                        size="lg"
                         onChange={(value)=> 
                           setTimeUntilSleep(value)}
                       >
@@ -431,7 +451,7 @@ function DataVisualisationMainScreen({navigation}){
                         <Slider.Thumb />
                       </Slider>
 
-                      <Heading size="md">מספר היקיצות שלך בלילה:</Heading>
+                      <Heading size="sm">מספר היקיצות שלך בלילה:</Heading>
                       <Text>{numOfAwakenings} יקיצות</Text>
                       <Slider
                         defaultValue={numOfAwakenings}
@@ -450,7 +470,7 @@ function DataVisualisationMainScreen({navigation}){
                         <Slider.Thumb />
                       </Slider>
 
-                      <Heading size="md">סך כל זמן היקיצות בלילה עד היציאה מהמיטה בבוקר:</Heading>
+                      <Heading size="sm">סך כל זמן היקיצות בלילה עד היציאה מהמיטה בבוקר:</Heading>
                       <Text>{totalTimeOfAwakenings} דקות</Text>
                       <Slider
                         defaultValue={totalTimeOfAwakenings}
@@ -469,7 +489,7 @@ function DataVisualisationMainScreen({navigation}){
                         <Slider.Thumb />
                       </Slider>
                   
-                      <Heading size="md">שעת היקיצה הסופית שלך בבוקר:</Heading>
+                      <Heading size="sm">שעת היקיצה הסופית שלך בבוקר:</Heading>
                       <TimePicker              
                         minutesInterval={15}
                         value={{minutes:wakeUpTime_M, hours:wakeUpTime_H}}
@@ -479,7 +499,7 @@ function DataVisualisationMainScreen({navigation}){
                         }}
                       />
 
-                      <Heading size="md">כיצד התעוררת?</Heading>
+                      <Heading size="sm">כיצד התעוררת?</Heading>
                       <Select 
                         minWidth={200} 
                         selectedValue={wakeUpMethod}
@@ -511,7 +531,7 @@ function DataVisualisationMainScreen({navigation}){
                         }
                       />
 
-                      <Heading size="md">השעה בה יצאת מהמיטה:</Heading>
+                      <Heading size="sm">השעה בה יצאת מהמיטה:</Heading>
                       <TimePicker              
                         minutesInterval={15}
                         value={{minutes:riseFromBedTime_M, hours:riseFromBedTime_H}}
@@ -521,7 +541,7 @@ function DataVisualisationMainScreen({navigation}){
                         }}
                       />
 
-                      <Heading size="md">כמה זמן להערכתך ממש ישנת:</Heading>
+                      <Heading size="sm">כמה זמן להערכתך ממש ישנת:</Heading>
                       <Text>{actualSleepTime} שעות</Text>
                       <Slider
                         defaultValue={actualSleepTime}
@@ -546,7 +566,7 @@ function DataVisualisationMainScreen({navigation}){
             <Modal.Footer>
               <Button
                 onPress={()=> {
-                  setShowFromModal(false);
+                  setShowFormModal(false);
                   save_form_data();
                 }}
               >
@@ -570,7 +590,38 @@ function DataVisualisationMainScreen({navigation}){
                 <ScrollView>
                   <NativeBaseProvider>
                     <VStack space={3} alignItems="center" safeArea>          
-                      <Text>שעת כניסה למיטה: {infoForModal.bedEntryTime}</Text>
+                      <Heading size="sm">שעת כניסה למיטה:</Heading>
+                      <Text>{infoForModal.bedEntryTime}</Text>
+
+                      <Heading size="sm">שעת החלטה להירדם:</Heading>
+                      <Text>{infoForModal.sleepDecisionTime}</Text>
+
+                      <Heading size="sm">מה עשית במיטה לפני השינה:</Heading>
+                      <Text>{infoForModal.bedActivity}</Text>
+                      <Text>{infoForModal.bedActivityOther}</Text>
+
+                      <Heading size="sm">זמן עד שנרדמת:</Heading>
+                      <Text>{infoForModal.timeUntilSleep}</Text>
+
+                      <Heading size="sm">מספר היקיצות במרוצת הלילה:</Heading>
+                      <Text>{infoForModal.numOfAwakenings}</Text>
+
+                      <Heading size="sm">סך כל הזמן העירנות בלילה:</Heading>
+                      <Text>{infoForModal.totalTimeOfAwakenings}</Text>
+
+                      <Heading size="sm">שעת התעוררות בבוקר:</Heading>
+                      <Text>{infoForModal.wakeUpTime}</Text>
+
+                      <Heading size="sm">אופן ההתעוררות בבוקר:</Heading>
+                      <Text>{infoForModal.wakeUpMethod}</Text>
+                      <Text>{infoForModal.wakeUpMethodOther}</Text>
+
+                      <Heading size="sm">השעה בה יצאת מהמיטה:</Heading>
+                      <Text>{infoForModal.riseFromBedTime}</Text>
+
+                      <Heading size="sm">זמן שינה מוערך:</Heading>
+                      <Text>{infoForModal.actualSleepTime}</Text>
+                              
                     </VStack>
                   </NativeBaseProvider>
                 </ScrollView>    
