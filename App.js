@@ -5,10 +5,10 @@ import { StyleSheet, View, ScrollView } from 'react-native';
 
 import { NavigationContainer }          from '@react-navigation/native';
 import { createStackNavigator }         from '@react-navigation/stack';
-import { Heading, Button, Fab, AddIcon }from 'native-base';
+import { Heading, Button, Fab, AddIcon, HStack }from 'native-base';
 import { NativeBaseProvider, Text }     from 'native-base';
 import { Input, Radio, VStack, Slider } from 'native-base';
-import { Select, FlatList, Modal }      from 'native-base';
+import { Select, FlatList, Modal, Pressable }      from 'native-base';
 import { SafeAreaProvider }             from 'react-native-safe-area-context';
 import {TimePicker}                     from 'react-native-simple-time-picker';
 
@@ -19,12 +19,13 @@ import { save_sleep_data, get_sleep_data }              from './utility_function
 import firebase                         from "firebase/app";
 import "firebase/database";
 
+import DateTimePicker from '@react-native-community/datetimepicker';
+
 //TODO: 
-//email needed?
 //replace slider?
 //documentation
 
-const VERSION = 0.2;
+const VERSION = 0.3;
 const Stack   = createStackNavigator();
 
 const firebaseConfig = {
@@ -147,9 +148,7 @@ function RegistrationScreen({navigation}){
   const [reason_of_failure, set_reason_of_failure] = useState("");
 
   const [registrationData, setRegistrationData] = useState({
-    user_id:      make_id(6),
-    mail:         "",
-    mail_repeat:  "",
+    user_id:      make_id(6),    
     gender:       "",
     age:          16,
     school_code:  "0000"
@@ -179,23 +178,6 @@ function RegistrationScreen({navigation}){
         <VStack space={3} alignItems="center">
           <Heading marginTop="30px">הרשמה</Heading>
 
-          <Input 
-            placeholder={"אי-מייל"}
-            value={registrationData.mail}
-            width="90%" 
-            variant="filled"
-            onChangeText={(value)=> 
-              setRegistrationData({...registrationData, mail:value})}
-          />
-          <Input 
-            placeholder={"אי-מייל (שוב)"}
-            value={registrationData.mail_repeat}
-            width="90%" 
-            variant="filled"
-            onChangeText={(value)=> 
-              setRegistrationData({...registrationData, mail_repeat:value})}
-          />
-        
           <Heading size="md">מגדר:</Heading>        
           <Radio.Group 
             defaultValue="male" 
@@ -256,6 +238,8 @@ function DataVisualisationMainScreen({navigation}){
 
   const [bedEntryTime_H, setBedEntryTime_H]             = useState(0);
   const [bedEntryTime_M, setBedEntryTime_M]             = useState(0);
+  const [bedEntryTime, setBedEntryTime]                 = useState("--:--");
+  const [showBedEntryTimePicker, setShowBedEntryTimePicker] = useState(false);
   const [sleepDecisionTime_H, setSleepDecisionTime_H]   = useState(0);
   const [sleepDecisionTime_M, setSleepDecisionTime_M]   = useState(0);
   const [bedActivity, setBedActivity]                   = useState("טלפון");
@@ -376,17 +360,29 @@ function DataVisualisationMainScreen({navigation}){
               <ScrollView>
                 <NativeBaseProvider>
                   <VStack space={3} alignItems="center" safeArea>          
-                      <Heading size="md">מלא את הנתונים הבאים:</Heading>        
+                      <Heading size="md">מלא את הנתונים הבאים:</Heading>  
+                      
+                      
+                      <Pressable 
+                        onPress={() => {setShowBedEntryTimePicker(true)}}>
+                        <Text fontSize="xl" textDecoration="underline" color="red.500">שעת כניסה למיטה:</Text>
+                      </Pressable>
+                      <Text>{bedEntryTime}</Text>
+                      
+                      
 
-                      <Heading size="sm">שעת כניסה למיטה:</Heading>
-                      <TimePicker              
-                        minutesInterval={15}
-                        value={{minutes:bedEntryTime_M, hours:bedEntryTime_H}}
-                        onChange={(value)=> {
-                          setBedEntryTime_H(value.hours);
-                          setBedEntryTime_M(value.minutes);
+                      {showBedEntryTimePicker && 
+                      <DateTimePicker 
+                        mode="time"
+                        is24Hour={true}
+                        value={new Date()}
+                        onChange={(event, selectedTime) => { 
+                          let hours = selectedTime.getHours();
+                          let minutes = selectedTime.getMinutes();                          
+                          setShowBedEntryTimePicker(false);
+                          setBedEntryTime(`${hours}:${minutes}`);
                         }}
-                      />
+                      />}
 
                       <Heading size="sm">השעה בה החלטת לעצום עיניים ולהרדם:</Heading>
                       <TimePicker              
@@ -397,7 +393,7 @@ function DataVisualisationMainScreen({navigation}){
                           setSleepDecisionTime_M(value.minutes);
                         }}
                       />
-
+                      
                       <Heading size="sm">מה עשית במיטה לפני שהחלטת להרדם?</Heading>
                       <Select 
                         minWidth={200} 
