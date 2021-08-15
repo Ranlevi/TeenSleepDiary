@@ -1,33 +1,31 @@
 import { StatusBar }                    from 'expo-status-bar';
-
 import React, {useState}                from 'react';
-import { StyleSheet, View, ScrollView, Pressable, TextInput} from 'react-native';
-
+import { Pressable, TextInput, ToastAndroid}          from 'react-native';
+import { StyleSheet, View, ScrollView}  from 'react-native';
 import { NavigationContainer }          from '@react-navigation/native';
 import { createStackNavigator }         from '@react-navigation/stack';
-import { Heading, Button, Fab, AddIcon, HStack }from 'native-base';
+import { Fab, AddIcon, HStack }         from 'native-base';
+import { Heading, Button }              from 'native-base';
 import { NativeBaseProvider, Text }     from 'native-base';
-import { Input, Radio, VStack, Slider } from 'native-base';
-import { Select, FlatList, Modal, useToast }      from 'native-base';
+import { Input, Radio, VStack }         from 'native-base';
+import { Modal }                        from 'native-base';
+import { Select, FlatList}              from 'native-base';
 import { SafeAreaProvider }             from 'react-native-safe-area-context';
-
 import { make_id, check_registration_data }             from './utility_functions';
 import {get_registration_data, save_registration_data}  from './utility_functions';
 import { save_sleep_data, get_sleep_data }              from './utility_functions';
-
 import firebase                         from "firebase/app";
 import "firebase/database";
-
 import DateTimePicker from '@react-native-community/datetimepicker';
 //https://github.com/react-native-datetimepicker/datetimepicker
 
-//TODO: 
-//replace slider?
-//documentation
+const VERSION            = 0.3;
+const Stack              = createStackNavigator();
+const DEBUG              = true; //Erase registation data and sleep logs
+const VALID_SCHOOL_CODES = ["0000", "0001"]; //TODO: replace with 4 digit integers
 
-const VERSION = 0.3;
-const Stack   = createStackNavigator();
-
+//FireBase Config and Init
+//////////////////////////////////////////
 const firebaseConfig = {
   apiKey:             "AIzaSyC8890qY4TxzWulJKBvt7YdQ_R89KMZ_x0",
   authDomain:         "teensleepdemoproject.firebaseapp.com",
@@ -47,10 +45,11 @@ if (!firebase.apps.length) {
 //get the node in the database
 let FB_rootRef = firebase.database().ref();
 
+///////////////////////////////////////////
+///////////////////////////////////////////
+
 let user_registration_data = {
-  user_id:      "",
-  mail:         "",
-  mail_repeat:  "",
+  user_id:      "",  
   gender:       "",
   age:          16,
   school_code:  "1111"
@@ -58,7 +57,8 @@ let user_registration_data = {
 
 let form_data        = [];
 
-get_sleep_data().then((data)=>{
+//Try to load existing sleep logs from storage, if any.
+get_sleep_data(DEBUG).then((data)=>{
   if (data!==null){
     form_data = data;
   }
@@ -106,7 +106,7 @@ function WelcomeScreen({navigation}){
 
   const [isButtonDisabled, setIsButtonDisabled] = useState(true);
 
-  get_registration_data().then((data)=> {
+  get_registration_data(DEBUG).then((data)=> {
     //Try to get stored registration data, which should be available
     //if the user is already registered on the current device.
     //If found -> Go to Datavisualision Screen. Else - enable the 
@@ -146,14 +146,14 @@ function WelcomeScreen({navigation}){
 function RegistrationScreen({navigation}){
 
   const [reason_of_failure, set_reason_of_failure] = useState("");
-
-  const [registrationData, setRegistrationData] = useState({
+  const [registrationData, setRegistrationData]    = useState({
     user_id:      make_id(6),    
     gender:       "",
-    age:          16,
+    age:          "",
     school_code:  "0000"
   });
 
+  //////////////////////////////////////////////////
   const process_registration_data = () => {
     //When user clicks the 'done' button, we send the data to be verified.
     //If successful - save the registration data and navigate to the 
@@ -170,6 +170,7 @@ function RegistrationScreen({navigation}){
       set_reason_of_failure(result.info);
     }
   }
+  ////////////////////////////////////////////////////////
   
   return (
     <ScrollView>
@@ -190,32 +191,35 @@ function RegistrationScreen({navigation}){
           </Radio.Group>
         
           <Heading size="md">גיל: {registrationData.age}</Heading>
-          <Slider
-            defaultValue={registrationData.age}
-            minValue={14}
-            maxValue={18}
-            accessibilityLabel="Age Slider"
-            step={1}
-            width="70%"
-            size="lg"
-            onChange={(value)=> 
-              setRegistrationData({...registrationData, age:value})}
-          >
-            <Slider.Track>
-              <Slider.FilledTrack />
-            </Slider.Track>
-            <Slider.Thumb />
-          </Slider>
+          <TextInput 
+            style={styles.minutes_input}
+            keyboardType="numeric"
+            maxLength={2}
+            value={registrationData.age}
+            onChangeText={(value)=> {
+              setRegistrationData({...registrationData, age:value})                            
+            }}
+            selectTextOnFocus={true}
+          />          
 
-          <Heading size="md">קוד ביה"ס:</Heading>
-          <Input 
+          <Heading size="md">קוד ביה"ס:</Heading>          
+          <TextInput 
+            style={styles.minutes_input}
+            keyboardType="numeric"
+            maxLength={4}
+            value={registrationData.school_code}
+            onChangeText={(value)=> 
+              setRegistrationData({...registrationData, school_code:value})}
+            selectTextOnFocus={true}
+          />  
+          {/* <Input 
             placeholder={registrationData.school_code}
             value={registrationData.school_code}
             width="50%" 
             variant="filled"
             onChangeText={(value)=> 
               setRegistrationData({...registrationData, school_code:value})}
-          />
+          /> */}
 
           <Button marginTop="30px"
             onPress={()=> process_registration_data()}
@@ -231,40 +235,32 @@ function RegistrationScreen({navigation}){
 
 ///////////////////////////////////////////////
 ///////////////////////////////////////////////
-function DataVisualisationMainScreen({navigation}){
+function DataVisualisationMainScreen(){
 
-  const [showFormModal, setShowFormModal]               = useState(false);
-  const [showInfoModal, setShowInfoModal]               = useState(false);
-
-  const [bedEntryTime, setBedEntryTime]                 = useState("--:--");
+  const [showFormModal, setShowFormModal]                   = useState(false);
+  const [showInfoModal, setShowInfoModal]                   = useState(false);
+  const [bedEntryTime, setBedEntryTime]                     = useState("--:--");
   const [showBedEntryTimePicker, setShowBedEntryTimePicker] = useState(false);
-
-  const [sleepDecisionTime, setSleepDecisionTime]   = useState("--:--");
-  const [showSleepDecisionTimePicker, setShowSleepDecisionTimePicker]   = useState(false);
-  
-  const [bedActivity, setBedActivity]                   = useState("טלפון");
-  const [bedActivityOther, setBedActivityOther]         = useState("");
-  const [bedActivityInputDsbd, setBedActivityInputDsbd] = useState(true);
-
-  const [timeUntilSleep, setTimeUntilSleep]             = useState("000");
-
-  const [numOfAwakenings, setNumOfAwakenings]           = useState("000");
-  const [totalTimeOfAwakenings, setTotalTimeOfAwakenings] = useState("0");
-
-  const [wakeUpTime, setWakeUpTime]                 = useState("--:--");
-  const [showWakeUpTimePicker, setShowWakeUpTimePicker] = useState(false);
-
-  const [wakeUpMethod, setWakeUpMethod]                 = useState("שעון מעורר");
-  const [wakeUpMethodOther, setWakeUpMethodOther]       = useState("");
+  const [sleepDecisionTime, setSleepDecisionTime]                     = useState("--:--");
+  const [showSleepDecisionTimePicker, setShowSleepDecisionTimePicker] = useState(false);  
+  const [bedActivity, setBedActivity]                       = useState("טלפון");
+  const [bedActivityOther, setBedActivityOther]             = useState("");
+  const [bedActivityInputDsbd, setBedActivityInputDsbd]     = useState(true);
+  const [timeUntilSleep, setTimeUntilSleep]                 = useState("000");
+  const [numOfAwakenings, setNumOfAwakenings]               = useState("000");
+  const [totalTimeOfAwakenings, setTotalTimeOfAwakenings]   = useState("0");
+  const [wakeUpTime, setWakeUpTime]                         = useState("--:--");
+  const [showWakeUpTimePicker, setShowWakeUpTimePicker]     = useState(false);
+  const [wakeUpMethod, setWakeUpMethod]                     = useState("שעון מעורר");
+  const [wakeUpMethodOther, setWakeUpMethodOther]           = useState("");
   const [wakeUpMethodInputDslbd, setWakeUpMethodInputDslbd] = useState(true);
-
-  const [riseFromBedTime, setRiseFromBedTime]       = useState("--:--");
+  const [riseFromBedTime, setRiseFromBedTime]               = useState("--:--");
   const [showRiseFromBedTimePicker, setShowRiseFromBedTimePicker] = useState(false);
   const [actualSleepTime_H, setActualSleepTime_H]           = useState("00");
   const [actualSleepTime_M, setActualSleepTime_M]           = useState("00");
+  const [refreshFlatlist, setRefreshFlatlist]               = useState(false);
 
-  const [refreshFlatlist, setRefreshFlatlist]           = useState(false);
-  const [infoForModal, setInfoForModal]                 = useState({
+  const [infoForModal, setInfoForModal] = useState({
       key:                    "",
       bedEntryTime:           "",
       sleepDecisionTime:      "",
@@ -280,6 +276,7 @@ function DataVisualisationMainScreen({navigation}){
       actualSleepTime:        ""
   })
   
+  ///Save the submitted sleep log to local storage & Firebase.
   const save_form_data = () => {
     
     let data = {
@@ -307,16 +304,18 @@ function DataVisualisationMainScreen({navigation}){
     setRefreshFlatlist(refreshFlatlist => !refreshFlatlist);
   }
 
+  ////////////////////////////////////////
   const check_input = (event) => {
     console.log(event);
   }
 
-  const hours_limit_toast = useToast();
   
   return (
     
     <NativeBaseProvider>
       <View style={styles.dataViz}>
+
+        {/* //Data Visualization Screen */}
         <VStack mx={1} space={3} alignItems="center" safeArea> 
           <Heading marginTop="30px">נתונים שהוזנו בעבר:</Heading>
 
