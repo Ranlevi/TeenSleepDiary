@@ -1,18 +1,18 @@
 import { StatusBar }                    from 'expo-status-bar';
 import React, {useState}                from 'react';
-import { Pressable, TextInput, ToastAndroid}          from 'react-native';
+import { Pressable, TextInput }         from 'react-native';
 import { StyleSheet, View, ScrollView}  from 'react-native';
 import { NavigationContainer }          from '@react-navigation/native';
 import { createStackNavigator }         from '@react-navigation/stack';
 import { Fab, AddIcon, HStack }         from 'native-base';
-import { Heading, Button }              from 'native-base';
+import { Heading, Button, Box }         from 'native-base';
 import { NativeBaseProvider, Text }     from 'native-base';
 import { Input, Radio, VStack }         from 'native-base';
 import { Modal }                        from 'native-base';
 import { Select, FlatList}              from 'native-base';
 import { SafeAreaProvider }             from 'react-native-safe-area-context';
-import { make_id, check_registration_data }             from './utility_functions';
-import {get_registration_data, save_registration_data}  from './utility_functions';
+import { make_id }                      from './utility_functions';
+import { get_registration_data, save_registration_data} from './utility_functions';
 import { save_sleep_data, get_sleep_data }              from './utility_functions';
 import firebase                         from "firebase/app";
 import "firebase/database";
@@ -21,8 +21,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 
 const VERSION            = 0.3;
 const Stack              = createStackNavigator();
-const DEBUG              = true; //Erase registation data and sleep logs
-const VALID_SCHOOL_CODES = ["0000", "0001"]; //TODO: replace with 4 digit integers
+const DEBUG              = false; //Erase registation data and sleep logs
 
 //FireBase Config and Init
 //////////////////////////////////////////
@@ -145,44 +144,30 @@ function WelcomeScreen({navigation}){
 ///////////////////////////////////////////////
 function RegistrationScreen({navigation}){
 
-  const [reason_of_failure, set_reason_of_failure] = useState("");
-  const [registrationData, setRegistrationData]    = useState({
+  const [ageIsInvalid, setAgeIsInvalid]               = useState(false);
+  const [schoolCodeIsInvalid, setSchoolCodeIsInvalid] = useState(false);
+  const [errorText, setErrorText]                     = useState("");
+
+  const [registrationData, setRegistrationData]       = useState({
     user_id:      make_id(6),    
     gender:       "",
     age:          "",
     school_code:  "0000"
   });
-
-  //////////////////////////////////////////////////
-  const process_registration_data = () => {
-    //When user clicks the 'done' button, we send the data to be verified.
-    //If successful - save the registration data and navigate to the 
-    //data visualization screen. Else, display the reason for failure. 
-    let result = check_registration_data(registrationData);
-
-    if (result.registration_succesful){
-
-      save_registration_data(registrationData);
-      user_registration_data = registrationData;
-      navigation.navigate('DataVisualisationMain');
-
-    } else {
-      set_reason_of_failure(result.info);
-    }
-  }
-  ////////////////////////////////////////////////////////
   
   return (
-    <ScrollView>
-      <StatusBar style="auto" />
-      <NativeBaseProvider>
-        <VStack space={3} alignItems="center">
-          <Heading marginTop="30px">הרשמה</Heading>
+      <NativeBaseProvider>   
+        <StatusBar style="auto" />    
+        <Box style={styles.registraion_screen}>
+        
+          <Heading marginTop="100px">הרשמה</Heading>
+          <Text highlight marginTop="10px">{errorText}</Text>
 
-          <Heading size="md">מגדר:</Heading>        
+          <Heading marginTop="30px" size="md">מגדר:</Heading>        
           <Radio.Group 
-            defaultValue="male" 
-            size="lg"
+            defaultValue= "male" 
+            size=         "lg"
+            marginTop=    "10px"
             onChange={(value)=> 
               setRegistrationData({...registrationData, gender:value})}
           >
@@ -190,46 +175,74 @@ function RegistrationScreen({navigation}){
             <Radio aria-label="female" value="female">נקבה</Radio>
           </Radio.Group>
         
-          <Heading size="md">גיל: {registrationData.age}</Heading>
-          <TextInput 
-            style={styles.minutes_input}
-            keyboardType="numeric"
-            maxLength={2}
-            value={registrationData.age}
+          <Heading marginTop="30px" size="md">גיל:</Heading>
+          <Input 
+            isInvalid=         {ageIsInvalid}
+            variant=           "rounded"
+            width=             "30%"
+            keyboardType=      "numeric"
+            maxLength=         {2}
+            selectTextOnFocus= {true}
+            value=             {registrationData.age}
             onChangeText={(value)=> {
               setRegistrationData({...registrationData, age:value})                            
             }}
-            selectTextOnFocus={true}
-          />          
+          />    
 
-          <Heading size="md">קוד ביה"ס:</Heading>          
-          <TextInput 
-            style={styles.minutes_input}
-            keyboardType="numeric"
-            maxLength={4}
-            value={registrationData.school_code}
-            onChangeText={(value)=> 
-              setRegistrationData({...registrationData, school_code:value})}
-            selectTextOnFocus={true}
+          <Heading marginTop="30px" size="md">קוד ביה"ס:</Heading> 
+          <Input 
+            isInvalid=         {schoolCodeIsInvalid}
+            variant=           "rounded"
+            width=             "30%"
+            keyboardType=      "numeric"
+            maxLength=         {4}
+            selectTextOnFocus= {true}
+            value=             {registrationData.school_code}
+            onChangeText={(value)=> {
+              setRegistrationData({...registrationData, school_code:value})                            
+            }}
           />  
-          {/* <Input 
-            placeholder={registrationData.school_code}
-            value={registrationData.school_code}
-            width="50%" 
-            variant="filled"
-            onChangeText={(value)=> 
-              setRegistrationData({...registrationData, school_code:value})}
-          /> */}
 
-          <Button marginTop="30px"
-            onPress={()=> process_registration_data()}
+          <Button 
+            marginTop="30px"
+            onPress={()=>{
+              //Validate inputs:
+
+              //Valid Age, 14-18
+              let isnum = /^\d+$/.test(registrationData.age);
+              let age = parseInt(registrationData.age, 10);
+              if (!isnum || age<14 || age>18){
+                setAgeIsInvalid(true);
+                setErrorText("שגיאה: גיל חייב להיות בתחום שבין 14 ל-18");
+                return;
+              } else {
+                setAgeIsInvalid(false);
+              }             
+              
+              //validate school code
+              //numbers only, 0-9999 (can't be above 4 digits anyway)
+              isnum = /^\d+$/.test(registrationData.school_code);
+              if (!isnum || 
+                registrationData.school_code.length===0){
+                  setSchoolCodeIsInvalid(true);
+                  setErrorText("קוד בית ספר אינו תקין.");
+                  return;
+                } else {
+                  setSchoolCodeIsInvalid(false);
+                }
+
+              //Inputs are valid!
+              save_registration_data(registrationData);
+              user_registration_data = registrationData;
+              navigation.navigate('DataVisualisationMain');
+            }}            
           >
             סיום
           </Button>
-          <Text highlight>{reason_of_failure}</Text>
-      </VStack>      
+
+       </Box>
     </NativeBaseProvider>
-    </ScrollView>
+    
   )
 }
 
@@ -237,8 +250,9 @@ function RegistrationScreen({navigation}){
 ///////////////////////////////////////////////
 function DataVisualisationMainScreen(){
 
-  const [showFormModal, setShowFormModal]                   = useState(false);
+  const [showFormModal, setShowFormModal]                   = useState(false);  
   const [showInfoModal, setShowInfoModal]                   = useState(false);
+
   const [bedEntryTime, setBedEntryTime]                     = useState("--:--");
   const [showBedEntryTimePicker, setShowBedEntryTimePicker] = useState(false);
   const [sleepDecisionTime, setSleepDecisionTime]                     = useState("--:--");
@@ -303,12 +317,6 @@ function DataVisualisationMainScreen(){
 
     setRefreshFlatlist(refreshFlatlist => !refreshFlatlist);
   }
-
-  ////////////////////////////////////////
-  const check_input = (event) => {
-    console.log(event);
-  }
-
   
   return (
     
@@ -374,60 +382,58 @@ function DataVisualisationMainScreen(){
                   <VStack space={3} alignItems="center" safeArea>          
                       <Heading size="md">מלא את הנתונים הבאים:</Heading>  
                   
-                      {/* ///////////////////////////////////////////// */}
-                      <Pressable 
-                        onPress={() => {setShowBedEntryTimePicker(true)}}>
-                        <Text 
-                          fontSize="xl" 
-                          textDecoration="underline" 
-                          color="red.500">
-                          שעת כניסה למיטה:
-                        </Text>
-                      </Pressable>
-                      <Text>{bedEntryTime}</Text>
+                      {/* ///////////////////////////////////////////// */}                      
+                      <HStack>
+                        <Text>שעת כניסה למיטה:  </Text>                      
+                        <Pressable 
+                          onPress={() => {setShowBedEntryTimePicker(true)}}>
+                          <Text color="primary.500">{bedEntryTime}</Text>
+                        </Pressable>
+                      </HStack>                  
                       
                       {showBedEntryTimePicker && 
                       <DateTimePicker 
-                        mode="time"
-                        is24Hour={true}
-                        value={new Date()}
+                        mode=     "time"
+                        is24Hour= {true}
+                        value=    {new Date()}
                         onChange={(event, selectedTime) => { 
-                          let hours = selectedTime.getHours();
-                          let minutes = selectedTime.getMinutes();                          
-                          setShowBedEntryTimePicker(false);
-                          setBedEntryTime(`${hours}:${minutes}`);
+                          if (event.type!=="dismissed"){
+                            let hours = selectedTime.getHours();
+                            let minutes = selectedTime.getMinutes();                          
+                            setShowBedEntryTimePicker(false);
+                            setBedEntryTime(`${hours}:${minutes}`);
+                          }
                         }}
                       />}
 
                       {/* ///////////////////////////////////////////// */}
-                      <Pressable 
-                        onPress={() => {setShowSleepDecisionTimePicker(true)}}>
-                        <Text 
-                          fontSize="xl" 
-                          textDecoration="underline" 
-                          color="red.500">
-                          השעה בה החלטת לעצום עיניים ולהרדם:
-                        </Text>
-                      </Pressable>
-                      <Text>{sleepDecisionTime}</Text>
+                      <HStack>
+                        <Text>השעה בה החלטת לעצום עיניים ולהרדם:  </Text>                      
+                        <Pressable 
+                          onPress={() => {setShowSleepDecisionTimePicker(true)}}>
+                          <Text color="primary.500">{sleepDecisionTime}</Text>
+                        </Pressable>
+                      </HStack>                     
                       
                       {showSleepDecisionTimePicker && 
                       <DateTimePicker 
-                        mode="time"
-                        is24Hour={true}
-                        value={new Date()}
+                        mode=     "time"
+                        is24Hour= {true}
+                        value=    {new Date()}
                         onChange={(event, selectedTime) => { 
-                          let hours = selectedTime.getHours();
-                          let minutes = selectedTime.getMinutes();                          
-                          setShowSleepDecisionTimePicker(false);
-                          setSleepDecisionTime(`${hours}:${minutes}`);
+                          if (event.type!=="dismissed"){
+                            let hours = selectedTime.getHours();
+                            let minutes = selectedTime.getMinutes();                          
+                            setShowSleepDecisionTimePicker(false);
+                            setSleepDecisionTime(`${hours}:${minutes}`);
+                          }                          
                         }}
                       />}    
 
                       {/* ///////////////////////////////////////////// */}
-                      <Heading size="sm">מה עשית במיטה לפני שהחלטת להרדם?</Heading>
+                      <Text>מה עשית במיטה לפני שהחלטת להרדם?</Text>
                       <Select 
-                        minWidth={200} 
+                        minWidth=     {200} 
                         selectedValue={bedActivity}
                         onValueChange={(value)=>{
                           if (value==="אחר"){
@@ -449,33 +455,32 @@ function DataVisualisationMainScreen(){
                         <Select.Item label="אחר (פרט.י לעיל)" value="אחר" />
                       </Select>
                       <Input               
-                        w="80%"
-                        isDisabled={bedActivityInputDsbd}
+                        w=          "80%"
+                        isDisabled= {bedActivityInputDsbd}
                         placeholder="פירוט"
-                        value={bedActivityOther}
-                        variant="filled"
+                        value=      {bedActivityOther}
+                        variant=    "filled"
                         onChangeText={(value)=> 
                           setBedActivityOther(value)
                         }
                       />
 
                       {/* ///////////////////////////////////////////// */}
-                      <Heading size="sm">הזמן מהרגע שהחלטת להירדם ועד שנרדמת (בדקות):</Heading>
-                      <TextInput 
-                        style={styles.minutes_input}
-                        keyboardType="numeric"
-                        maxLength={3}
-                        value={timeUntilSleep}
-                        onChangeText={setTimeUntilSleep}
-                        selectTextOnFocus={true}
-                      />
+                      <Text>הזמן מהרגע שהחלטת להירדם ועד שנרדמת (בדקות):</Text>
+                      <Input                         
+                        variant=           "rounded"
+                        width=             "30%"
+                        keyboardType=      "numeric"
+                        maxLength=         {3}
+                        selectTextOnFocus= {true}
+                        value=             {timeUntilSleep}                        
+                      /> 
                       
-
                       {/* ///////////////////////////////////////////// */}
                       <Heading size="sm">מספר היקיצות שלך בלילה:</Heading>
 
                       <TextInput 
-                        style={styles.minutes_input}
+                        style={styles.text_input}
                         keyboardType="numeric"
                         maxLength={3}
                         value={numOfAwakenings}
@@ -488,7 +493,7 @@ function DataVisualisationMainScreen(){
                       <Heading size="sm">סך כל זמן היקיצות בלילה עד היציאה מהמיטה בבוקר (בדקות):</Heading>
 
                       <TextInput 
-                        style={styles.minutes_input}
+                        style={styles.text_input}
                         keyboardType="numeric"
                         maxLength={3}
                         value={totalTimeOfAwakenings}
@@ -677,6 +682,7 @@ function DataVisualisationMainScreen(){
 }
 
 const styles = StyleSheet.create({
+  //Basic Layout: everything is centered on both axes. White BG.
   container: {
     flex: 1,
     backgroundColor: '#fff',
@@ -687,6 +693,12 @@ const styles = StyleSheet.create({
     fontFamily:"sans-serif-thin", 
     textAlign:"center"
   },
+  registraion_screen: {
+    flex:            1,
+    backgroundColor: '#fff',
+    alignItems:      'center',
+    justifyContent: 'flex-start',
+  },
   form: {
     flex: 1,
     justifyContent: "flex-start",    
@@ -696,7 +708,7 @@ const styles = StyleSheet.create({
     flex: 1, 
     justifyContent: "flex-start",    
   },
-  minutes_input: {
+  text_input: {
     borderBottomWidth: 1
     // borderWidth: 1,
     // paddingHorizontal: 20

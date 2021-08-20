@@ -16,35 +16,6 @@ export function make_id(length) {
 
 ////////////////////////////////////////////////////
 ////////////////////////////////////////////////////
-export function check_registration_data(registrationData){
-    //Checks if registation data entered by the user is valid.
-    //If not, the reason will be returned in the info field.
-    let result_obj = {
-      registration_succesful: true,
-      info:   ""
-    }
-    //TODO: validate school code - numbers only, 0-9999
-    let school_code = parseInt(registrationData.school_code,10);
-    if (school_code<0 || school_code>9999){
-      result_obj = {
-            result: false,
-            info:   "קוד בית ספר אינו תקין."
-          }
-    }    
-    
-    let age = parseInt(registrationData.age, 10);
-    if (age<14 || age>18){
-      result_obj = {
-        result: false,
-        info:   "שגיאה: גיל חייב להיות בתחום שבין 14 ל-18"
-      }
-    }
-    
-    return result_obj;
-}
-
-////////////////////////////////////////////////////
-////////////////////////////////////////////////////
 export async function get_registration_data(DEBUG){
 
     if (DEBUG){
