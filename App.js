@@ -262,7 +262,7 @@ function DataVisualisationMainScreen(){
   const [bedActivityInputDsbd, setBedActivityInputDsbd]     = useState(true);
   const [timeUntilSleep, setTimeUntilSleep]                 = useState("000");
   const [numOfAwakenings, setNumOfAwakenings]               = useState("000");
-  const [totalTimeOfAwakenings, setTotalTimeOfAwakenings]   = useState("0");
+  const [totalTimeOfAwakenings, setTotalTimeOfAwakenings]   = useState("000");
   const [wakeUpTime, setWakeUpTime]                         = useState("--:--");
   const [showWakeUpTimePicker, setShowWakeUpTimePicker]     = useState(false);
   const [wakeUpMethod, setWakeUpMethod]                     = useState("שעון מעורר");
@@ -379,7 +379,7 @@ function DataVisualisationMainScreen(){
               <ScrollView>
                 <NativeBaseProvider>
 
-                  <VStack space={3} alignItems="center" safeArea>          
+                  <VStack space={3} alignItems="flex-start" safeArea>          
                       <Heading size="md">מלא את הנתונים הבאים:</Heading>  
                   
                       {/* ///////////////////////////////////////////// */}                      
@@ -398,7 +398,7 @@ function DataVisualisationMainScreen(){
                         value=    {new Date()}
                         onChange={(event, selectedTime) => { 
                           if (event.type!=="dismissed"){
-                            let hours = selectedTime.getHours();
+                            let hours   = selectedTime.getHours();
                             let minutes = selectedTime.getMinutes();                          
                             setShowBedEntryTimePicker(false);
                             setBedEntryTime(`${hours}:${minutes}`);
@@ -467,62 +467,70 @@ function DataVisualisationMainScreen(){
 
                       {/* ///////////////////////////////////////////// */}
                       <Text>הזמן מהרגע שהחלטת להירדם ועד שנרדמת (בדקות):</Text>
-                      <Input                         
+                      <Input
+                        textAlign=         "center"
                         variant=           "rounded"
                         width=             "30%"
                         keyboardType=      "numeric"
                         maxLength=         {3}
                         selectTextOnFocus= {true}
-                        value=             {timeUntilSleep}                        
+                        value=             {timeUntilSleep}
+                        onChangeText={(value)=> {
+                          setTimeUntilSleep(value);
+                        }}
                       /> 
                       
                       {/* ///////////////////////////////////////////// */}
-                      <Heading size="sm">מספר היקיצות שלך בלילה:</Heading>
-
-                      <TextInput 
-                        style={styles.text_input}
-                        keyboardType="numeric"
-                        maxLength={3}
-                        value={numOfAwakenings}
-                        onChangeText={setNumOfAwakenings}
-                        selectTextOnFocus={true}
-                      />
-                     
-
-                      {/* ///////////////////////////////////////////// */}
-                      <Heading size="sm">סך כל זמן היקיצות בלילה עד היציאה מהמיטה בבוקר (בדקות):</Heading>
-
-                      <TextInput 
-                        style={styles.text_input}
-                        keyboardType="numeric"
-                        maxLength={3}
-                        value={totalTimeOfAwakenings}
-                        onChangeText={setTotalTimeOfAwakenings}
-                        selectTextOnFocus={true}
-                      />                      
+                      <Text>מספר היקיצות שלך בלילה:</Text>
+                      <Input
+                        textAlign=         "center"
+                        variant=           "rounded"
+                        width=             "30%"
+                        keyboardType=      "numeric"
+                        maxLength=         {2}
+                        selectTextOnFocus= {true}
+                        value=             {numOfAwakenings}
+                        onChangeText={(value)=> {
+                          setNumOfAwakenings(value);
+                        }}                        
+                      />                                            
 
                       {/* ///////////////////////////////////////////// */}
-                      <Pressable 
-                        onPress={() => {setShowWakeUpTimePicker(true)}}>
-                        <Text 
-                          fontSize="xl" 
-                          textDecoration="underline" 
-                          color="red.500">
-                          שעת היקיצה הסופית שלך בבוקר:
-                        </Text>
-                      </Pressable>
-                      <Text>{wakeUpTime}</Text>
+                      <Text>סך כל זמן היקיצות בלילה עד היציאה מהמיטה בבוקר (בדקות):</Text>
+                      <Input
+                        textAlign=         "center"
+                        variant=           "rounded"
+                        width=             "30%"
+                        keyboardType=      "numeric"
+                        maxLength=         {3}
+                        selectTextOnFocus= {true}
+                        value=             {totalTimeOfAwakenings}
+                        onChangeText={(value)=> {
+                          setTotalTimeOfAwakenings(value);
+                        }}                        
+                      />                                         
+
+                      {/* ///////////////////////////////////////////// */}
+                      <HStack>
+                        <Text>שעת היקיצה הסופית שלך בבוקר:  </Text>                      
+                        <Pressable 
+                          onPress={() => {setShowWakeUpTimePicker(true)}}>
+                          <Text color="primary.500">{wakeUpTime}</Text>
+                        </Pressable>
+                      </HStack>                      
                       
                       {showWakeUpTimePicker && 
                       <DateTimePicker 
-                        mode="time"
-                        is24Hour={true}
-                        value={new Date()}
+                        mode=         "time"
+                        is24Hour=     {true}
+                        value=        {new Date()}
                         onChange={(event, selectedTime) => { 
-                          let hours = selectedTime.getHours();
-                          let minutes = selectedTime.getMinutes();                          
-                          setShowWakeUpTimePicker(false);
-                          setWakeUpTime(`${hours}:${minutes}`);
+                          if (event.type!=="dismissed"){
+                            let hours   = selectedTime.getHours();
+                            let minutes = selectedTime.getMinutes();                          
+                            setShowWakeUpTimePicker(false);
+                            setWakeUpTime(`${hours}:${minutes}`);
+                          }
                         }}
                       />}                   
 
@@ -549,61 +557,68 @@ function DataVisualisationMainScreen(){
                         <Select.Item label="אחר (פרט.י לעיל)" value="אחר" />
                       </Select>
                       <Input               
-                        w="80%"
-                        isDisabled={wakeUpMethodInputDslbd}
-                        placeholder="פירוט"
-                        value={wakeUpMethodOther}
-                        variant="filled"
+                        w=            "80%"
+                        isDisabled=   {wakeUpMethodInputDslbd}
+                        placeholder=  "פירוט"
+                        value=        {wakeUpMethodOther}
+                        variant=      "filled"
                         onChangeText={(value)=> 
                           setWakeUpMethodOther(value)
                         }
                       />
 
                       {/* ///////////////////////////////////////////// */}
-                      <Pressable 
-                        onPress={() => {setShowRiseFromBedTimePicker(true)}}>
-                        <Text 
-                          fontSize="xl" 
-                          textDecoration="underline" 
-                          color="red.500">
-                          השעה בה יצאת מהמיטה:
-                        </Text>
-                      </Pressable>
-                      <Text>{riseFromBedTime}</Text>
+                      <HStack>
+                        <Text>השעה בה יצאת מהמיטה:  </Text>                      
+                        <Pressable 
+                          onPress={() => {setShowRiseFromBedTimePicker(true)}}>
+                          <Text color="primary.500">{riseFromBedTime}</Text>
+                        </Pressable>
+                      </HStack>                       
                       
                       {showRiseFromBedTimePicker && 
                       <DateTimePicker 
-                        mode="time"
-                        is24Hour={true}
-                        value={new Date()}
+                        mode=       "time"
+                        is24Hour=   {true}
+                        value=      {new Date()}
                         onChange={(event, selectedTime) => { 
-                          let hours = selectedTime.getHours();
-                          let minutes = selectedTime.getMinutes();                          
-                          setShowRiseFromBedTimePicker(false);
-                          setRiseFromBedTime(`${hours}:${minutes}`);
+                          if (event.type!=="dismissed"){
+                            let hours   = selectedTime.getHours();
+                            let minutes = selectedTime.getMinutes();                          
+                            setShowRiseFromBedTimePicker(false);
+                            setRiseFromBedTime(`${hours}:${minutes}`);
+                          }                         
                         }}
                       />}
 
                       {/* ///////////////////////////////////////////// */}
-                      <Heading size="sm">כמה זמן להערכתך ממש ישנת:</Heading>
+                      <Text>כמה זמן להערכתך ממש ישנת:</Text>
                       <HStack>
-                        {/* <TextInput 
-                          style={styles.minutes_input}
-                          keyboardType="numeric"
-                          maxLength={2}
-                          value={actualSleepTime_H}
-                          onChangeText={setActualSleepTime_H}                          
-                          selectTextOnFocus={true}
+                        <Input
+                          textAlign=         "center"
+                          variant=           "rounded"
+                          width=             "30%"
+                          keyboardType=      "numeric"
+                          maxLength=         {2}
+                          selectTextOnFocus= {true}
+                          value=             {actualSleepTime_H}
+                          onChangeText={(value)=> {
+                            setActualSleepTime_H(value);
+                          }}
+                        /> 
+                        <Text>H</Text>
+                        <Input
+                          textAlign=         "center"
+                          variant=           "rounded"
+                          width=             "30%"
+                          keyboardType=      "numeric"
+                          maxLength=         {2}
+                          selectTextOnFocus= {true}
+                          value=             {actualSleepTime_M}
+                          onChangeText={(value)=> {
+                            setActualSleepTime_M(value);
+                          }}
                         />
-                        <Text> : </Text>
-                        <TextInput 
-                          style={styles.minutes_input}
-                          keyboardType="numeric"
-                          maxLength={2}
-                          value={actualSleepTime_M}
-                          onChangeText={setActualSleepTime_M}
-                          selectTextOnFocus={true}
-                        /> */}
                       </HStack>
 
                   </VStack>
