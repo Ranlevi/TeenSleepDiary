@@ -2,7 +2,7 @@
   "expo": {
     "name": "TeenSleepDiary",
     "slug": "TeenSleepDiary",
-    "version": "0.0.1",
+    "version": "0.0.3",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "splash": {
@@ -19,16 +19,12 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.teensleep.diary",
-      "buildNumber": "0.0.1"
+      "buildNumber": "0.0.3"
     },
     "android": {
       "package": "com.teensleep.diary",
-      "versionCode": 2,
-      "permissions": [],
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#FFFFFF"
-      }
+      "versionCode": 3,
+      "permissions": []
     },
     "web": {
       "favicon": "./assets/favicon.png"

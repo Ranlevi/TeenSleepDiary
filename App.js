@@ -1,10 +1,10 @@
 import { StatusBar }                    from 'expo-status-bar';
 import React, {useState}                from 'react';
-import { Pressable, TextInput }         from 'react-native';
+import { Pressable  }                   from 'react-native';
 import { StyleSheet, View, ScrollView}  from 'react-native';
 import { NavigationContainer }          from '@react-navigation/native';
 import { createStackNavigator }         from '@react-navigation/stack';
-import { Fab, AddIcon, HStack }         from 'native-base';
+import { Fab, AddIcon, InfoOutlineIcon } from 'native-base';
 import { Heading, Button, Box }         from 'native-base';
 import { NativeBaseProvider, Text }     from 'native-base';
 import { Input, Radio, VStack }         from 'native-base';
@@ -66,32 +66,32 @@ get_sleep_data(DEBUG).then((data)=>{
 //////////////////////////////////////////////////
 ///////////////////////////////////////////////////
 export default function App() {
-  return (
-    <SafeAreaProvider>
-      <NavigationContainer>
-        <Stack.Navigator initialRouteName={"Welcome"}>
+  return (    
+      <SafeAreaProvider>
+        <NavigationContainer>
+          <Stack.Navigator initialRouteName={"Welcome"}>
 
-          <Stack.Screen 
-            name=     "Welcome"
-            component={WelcomeScreen}
-            options=  {{headerShown:false}}
-          />
+            <Stack.Screen 
+              name=     "Welcome"
+              component={WelcomeScreen}
+              options=  {{headerShown:false}}
+            />
 
-          <Stack.Screen 
-            name=       "Registration" 
-            component=  {RegistrationScreen} 
-            options=    {{headerShown:false}}                          
-          />
+            <Stack.Screen 
+              name=       "Registration" 
+              component=  {RegistrationScreen} 
+              options=    {{headerShown:false}}                          
+            />
 
-          <Stack.Screen
-            name=     "DataVisualisationMain"
-            component={DataVisualisationMainScreen}                      
-            options=    {{headerShown:false}}                          
-          />
+            <Stack.Screen
+              name=     "DataVisualisationMain"
+              component={DataVisualisationMainScreen}                      
+              options=    {{headerShown:false}}            
+            />
 
-        </Stack.Navigator>
-      </NavigationContainer>
-    </SafeAreaProvider>
+          </Stack.Navigator>
+        </NavigationContainer>
+      </SafeAreaProvider>    
   )
 }
 
@@ -120,22 +120,25 @@ function WelcomeScreen({navigation}){
   
   return (
     <NativeBaseProvider>
-      <View style={styles.container}>
+      <Box style={styles.container} bgColor='lightBlue.100'>    
+
         <Heading 
           style={styles.welcome_screen} size="sm">
             ברוכים הבאים לאפליקציית
         </Heading>
         <Heading style={styles.welcome_screen}>יומן שינה</Heading>
-      </View>
-
-      <View style={styles.container}>
-        <Button 
+            
+        <Button
+          colorScheme="teal"
+          marginTop="50px"
           isDisabled={isButtonDisabled}
           onPress={()=> navigation.navigate('Registration')}
         >
           הרשמה
         </Button>
-      </View>
+
+      </Box>
+      
     </NativeBaseProvider>
   )
 }
@@ -177,6 +180,7 @@ function RegistrationScreen({navigation}){
         
           <Heading marginTop="30px" size="md">גיל:</Heading>
           <Input 
+            textAlign=         "center"
             isInvalid=         {ageIsInvalid}
             variant=           "rounded"
             width=             "30%"
@@ -191,6 +195,7 @@ function RegistrationScreen({navigation}){
 
           <Heading marginTop="30px" size="md">קוד ביה"ס:</Heading> 
           <Input 
+            textAlign=         "center"
             isInvalid=         {schoolCodeIsInvalid}
             variant=           "rounded"
             width=             "30%"
@@ -250,8 +255,9 @@ function RegistrationScreen({navigation}){
 ///////////////////////////////////////////////
 function DataVisualisationMainScreen(){
 
-  const [showFormModal, setShowFormModal]                   = useState(false);  
-  const [showInfoModal, setShowInfoModal]                   = useState(false);
+  const [showFormModal, setShowFormModal]   = useState(false);  
+  const [showInfoModal, setShowInfoModal]   = useState(false);
+  const [showAboutModal, setShowAboutModal] = useState(false);
 
   const [bedEntryTime, setBedEntryTime]                     = useState("--:--");
   const [showBedEntryTimePicker, setShowBedEntryTimePicker] = useState(false);
@@ -270,8 +276,8 @@ function DataVisualisationMainScreen(){
   const [wakeUpMethodInputDslbd, setWakeUpMethodInputDslbd] = useState(true);
   const [riseFromBedTime, setRiseFromBedTime]               = useState("--:--");
   const [showRiseFromBedTimePicker, setShowRiseFromBedTimePicker] = useState(false);
-  const [actualSleepTime_H, setActualSleepTime_H]           = useState("00");
-  const [actualSleepTime_M, setActualSleepTime_M]           = useState("00");
+  const [actualSleepTime_H, setActualSleepTime_H]           = useState("HH");
+  const [actualSleepTime_M, setActualSleepTime_M]           = useState("MM");
   const [refreshFlatlist, setRefreshFlatlist]               = useState(false);
 
   const [infoForModal, setInfoForModal] = useState({
@@ -292,9 +298,20 @@ function DataVisualisationMainScreen(){
   
   ///Save the submitted sleep log to local storage & Firebase.
   const save_form_data = () => {
+    let day_names = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"];
+
+    let date=     new Date();    
+    let day_num=  date.getDay();
+    let day=      date.getDate();
+    let month=    date.getMonth() + 1;
+    let year=     date.getFullYear();
+    let hours=    date.getHours();
+    let minutes=  date.getMinutes();
+
+    let str = `${day_names[day_num]}, ${day}.${month}.${year}, ${hours}:${minutes}`;
     
-    let data = {
-      key:                    new Date().toLocaleString('he-IL'),
+    let data = {      
+      key:                    str,
       userID:                 user_registration_data.user_id,      
       bedEntryTime:           bedEntryTime,      
       sleepDecisionTime:      sleepDecisionTime, 
@@ -357,15 +374,40 @@ function DataVisualisationMainScreen(){
               </Button>              
             )}
           />
-
           <Fab
             size="lg"
+            placement="bottom-right"
             icon={<AddIcon color="white"/>}
             onPress={()=>               
               setShowFormModal(true)
             }
           />
-        </VStack>
+          <Fab
+            placement="bottom-left"
+            icon={<InfoOutlineIcon size="sm" color="black"/>}            
+            onPress={()=>               
+              setShowAboutModal(true)
+            }
+          />
+        </VStack>    
+
+        {/* //About Info Modal */}
+        <Modal
+          isOpen={showAboutModal}
+          onClose={()=> setShowAboutModal(false)}
+        >
+          <Modal.Content>
+            <Modal.CloseButton />
+            <Modal.Header>אודות</Modal.Header>
+            <Modal.Body>
+              <VStack>
+                <Text>גרסא {VERSION}</Text>
+                <Text>פותח ע"י: רן לוי</Text>
+                <Text>ליצירת קשר: tbd@tbd.com</Text>                            
+              </VStack>
+            </Modal.Body>
+          </Modal.Content>
+        </Modal>
             
         {/* Sleep Questioneer Form     */}
         <Modal
@@ -379,17 +421,16 @@ function DataVisualisationMainScreen(){
               <ScrollView>
                 <NativeBaseProvider>
 
-                  <VStack space={3} alignItems="flex-start" safeArea>          
+                  <VStack space={3} alignItems="center" safeArea>          
                       <Heading size="md">מלא את הנתונים הבאים:</Heading>  
                   
                       {/* ///////////////////////////////////////////// */}                      
-                      <HStack>
-                        <Text>שעת כניסה למיטה:  </Text>                      
-                        <Pressable 
-                          onPress={() => {setShowBedEntryTimePicker(true)}}>
-                          <Text color="primary.500">{bedEntryTime}</Text>
-                        </Pressable>
-                      </HStack>                  
+                      <Text>שעת כניסה למיטה:  </Text>                      
+                      <Pressable 
+                        onPress={() => {setShowBedEntryTimePicker(true)}}>
+                        <Text fontSize="xl" color="primary.500">{bedEntryTime}</Text>
+                      </Pressable>
+                      
                       
                       {showBedEntryTimePicker && 
                       <DateTimePicker 
@@ -406,14 +447,13 @@ function DataVisualisationMainScreen(){
                         }}
                       />}
 
-                      {/* ///////////////////////////////////////////// */}
-                      <HStack>
-                        <Text>השעה בה החלטת לעצום עיניים ולהרדם:  </Text>                      
-                        <Pressable 
-                          onPress={() => {setShowSleepDecisionTimePicker(true)}}>
-                          <Text color="primary.500">{sleepDecisionTime}</Text>
-                        </Pressable>
-                      </HStack>                     
+                      {/* ///////////////////////////////////////////// */}                      
+                      <Text>השעה בה החלטת לעצום עיניים ולהרדם:  </Text>                      
+                      <Pressable 
+                        onPress={() => {setShowSleepDecisionTimePicker(true)}}>
+                        <Text fontSize="xl" color="primary.500">{sleepDecisionTime}</Text>
+                      </Pressable>
+                      
                       
                       {showSleepDecisionTimePicker && 
                       <DateTimePicker 
@@ -510,14 +550,13 @@ function DataVisualisationMainScreen(){
                         }}                        
                       />                                         
 
-                      {/* ///////////////////////////////////////////// */}
-                      <HStack>
-                        <Text>שעת היקיצה הסופית שלך בבוקר:  </Text>                      
-                        <Pressable 
-                          onPress={() => {setShowWakeUpTimePicker(true)}}>
-                          <Text color="primary.500">{wakeUpTime}</Text>
-                        </Pressable>
-                      </HStack>                      
+                      {/* ///////////////////////////////////////////// */}                      
+                      <Text>שעת היקיצה הסופית שלך בבוקר:  </Text>                      
+                      <Pressable 
+                        onPress={() => {setShowWakeUpTimePicker(true)}}>
+                        <Text fontSize="xl" color="primary.500">{wakeUpTime}</Text>
+                      </Pressable>
+                      
                       
                       {showWakeUpTimePicker && 
                       <DateTimePicker 
@@ -567,14 +606,13 @@ function DataVisualisationMainScreen(){
                         }
                       />
 
-                      {/* ///////////////////////////////////////////// */}
-                      <HStack>
-                        <Text>השעה בה יצאת מהמיטה:  </Text>                      
-                        <Pressable 
-                          onPress={() => {setShowRiseFromBedTimePicker(true)}}>
-                          <Text color="primary.500">{riseFromBedTime}</Text>
-                        </Pressable>
-                      </HStack>                       
+                      {/* ///////////////////////////////////////////// */}                      
+                      <Text>השעה בה יצאת מהמיטה:  </Text>                      
+                      <Pressable 
+                        onPress={() => {setShowRiseFromBedTimePicker(true)}}>
+                        <Text fontSize="xl" color="primary.500">{riseFromBedTime}</Text>
+                      </Pressable>
+                      
                       
                       {showRiseFromBedTimePicker && 
                       <DateTimePicker 
@@ -592,34 +630,32 @@ function DataVisualisationMainScreen(){
                       />}
 
                       {/* ///////////////////////////////////////////// */}
-                      <Text>כמה זמן להערכתך ממש ישנת:</Text>
-                      <HStack>
-                        <Input
-                          textAlign=         "center"
-                          variant=           "rounded"
-                          width=             "30%"
-                          keyboardType=      "numeric"
-                          maxLength=         {2}
-                          selectTextOnFocus= {true}
-                          value=             {actualSleepTime_H}
-                          onChangeText={(value)=> {
-                            setActualSleepTime_H(value);
-                          }}
-                        /> 
-                        <Text>H</Text>
-                        <Input
-                          textAlign=         "center"
-                          variant=           "rounded"
-                          width=             "30%"
-                          keyboardType=      "numeric"
-                          maxLength=         {2}
-                          selectTextOnFocus= {true}
-                          value=             {actualSleepTime_M}
-                          onChangeText={(value)=> {
-                            setActualSleepTime_M(value);
-                          }}
-                        />
-                      </HStack>
+                      <Text>כמה זמן להערכתך ממש ישנת:</Text>                      
+                      <Input
+                        textAlign=         "center"
+                        variant=           "rounded"
+                        width=             "30%"
+                        keyboardType=      "numeric"
+                        maxLength=         {2}
+                        selectTextOnFocus= {true}
+                        value=             {actualSleepTime_H}
+                        onChangeText={(value)=> {
+                          setActualSleepTime_H(value);
+                        }}
+                      />                         
+                      <Input
+                        textAlign=         "center"
+                        variant=           "rounded"
+                        width=             "30%"
+                        keyboardType=      "numeric"
+                        maxLength=         {2}
+                        selectTextOnFocus= {true}
+                        value=             {actualSleepTime_M}
+                        onChangeText={(value)=> {
+                          setActualSleepTime_M(value);
+                        }}
+                      />                       
+                      
 
                   </VStack>
                 </NativeBaseProvider>
@@ -699,8 +735,7 @@ function DataVisualisationMainScreen(){
 const styles = StyleSheet.create({
   //Basic Layout: everything is centered on both axes. White BG.
   container: {
-    flex: 1,
-    backgroundColor: '#fff',
+    flex: 1,    
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -722,12 +757,5 @@ const styles = StyleSheet.create({
   dataViz: {   
     flex: 1, 
     justifyContent: "flex-start",    
-  },
-  text_input: {
-    borderBottomWidth: 1
-    // borderWidth: 1,
-    // paddingHorizontal: 20
-    // paddingLeft: 10,
-    // paddingRight: 10    
   }
 });
